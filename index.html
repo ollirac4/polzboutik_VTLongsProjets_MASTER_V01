@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Gaffer Hub - Visite Technique</title>
+
+    <!-- PWA – Installation iPhone / iPad -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gaffer Hub">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#5c35b5">
+    <style>
+        :root {
+            --bg: #f2f3f5; --card: #eeeeee; --primary: #5c35b5;
+            --accent: #006e68; --text: #1a1a1a; --danger: #b5252e;
+        }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+        .page { padding: 20px; }
+        .hidden { display: none; }
+        .header { border-bottom: 1px solid #d0d0d0; margin-bottom: 20px; }
+
+        .project-card {
+            background: var(--card);
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid #d0d0d0;
+            transition: border-color 0.2s;
+        }
+        .project-info { cursor: pointer; flex-grow: 1; }
+        .project-name { font-weight: bold; font-size: 1rem; }
+        .project-meta { font-size: 0.72rem; color: #888; margin-top: 4px; }
+
+        .tab-bar { display: flex; background: #e4e6ea; overflow-x: auto; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #c8c8cc; }
+        .tab { padding: 15px 20px; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; color: #555; }
+        .tab.active { border-bottom: 3px solid var(--primary); background: #ffffff; color: var(--primary); font-weight: bold; }
+
+        table { border-collapse: collapse; margin-top: 10px; background: var(--card); table-layout: auto; }
+        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; font-size: 0.9rem; white-space: nowrap; }
+        th { background: #eeeef2; color: #333; }
+
+        input, select, textarea { background: #ffffff; color: #1a1a1a; border: 1px solid #bbb; padding: 5px; width: 90%; border-radius: 4px; }
+
+        .btn { padding: 8px 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; margin: 5px; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-danger { background: var(--danger); color: white; padding: 5px 10px; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+
+        .toolbar { margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+
+        .handle { cursor: grab; color: var(--accent); margin-right: 10px; font-size: 1.2rem; }
+        .dragging { opacity: 0.5; background: #dde0e8; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; margin-left: 10px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #bbb; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .col-nav { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0 5px; font-size: 1.1rem; }
+        .col-name { cursor: pointer; border-bottom: 1px dashed var(--accent); }
+        .col-fixed { border-bottom: none; cursor: default; color: var(--accent); font-weight: bold; }
+
+        .pdt-day-block { border: 2px solid #d0d0d8; border-radius: 8px; margin-bottom: 20px; background: #ffffff; }
+        .pdt-header { background: #e4e6ea; padding: 8px 12px; display: flex; align-items: center; gap: 10px; border-radius: 6px 6px 0 0; }
+        .pdt-body { }
+        .pdt-col-header-row { display: flex; align-items: stretch; background: #eeeef2; border-top: 1px solid #d0d0d0; }
+        .pdt-col-hdr { padding: 5px 8px; font-size: 0.75rem; color: var(--accent); font-weight: bold; border-right: 1px solid #d0d0d0; text-align: center; }
+        .pdt-col-hdr-left { width: 160px; flex-shrink: 0; }
+        .pdt-col-hdr-chrono { flex: 1; min-width: 110px; }
+        .pdt-col-hdr-notes { width: 130px; flex-shrink: 0; background: #f5f5fa; }
+        .scene-row { display: flex; align-items: stretch; border-top: 1px solid #e8e8e8; }
+        .pdt-sec-left { width: 160px; padding: 8px; flex-shrink: 0; border-right: 1px solid #d0d0d0; display: flex; flex-direction: column; gap: 5px; }
+        .pdt-sec-left .dyn-label { font-size: 0.72rem; color: var(--primary); font-weight: bold; margin-bottom: 1px; }
+        .pdt-sec-left .dyn-select { width: 100%; box-sizing: border-box; font-size: 0.85rem; border: 1px solid var(--accent); background: #f5f8ff; color: #1a1a1a; border-radius: 4px; padding: 4px; }
+        .pdt-sec-left .dyn-row { display: flex; gap: 4px; }
+        .pdt-sec-left .dyn-input { flex: 1; min-width: 0; box-sizing: border-box; font-size: 0.82rem; border: 1px solid var(--accent); background: #f5f8ff; color: #1a1a1a; border-radius: 4px; padding: 4px 5px; width: 100%; }
+        .pdt-sec-left .dyn-input-full { width: 100%; box-sizing: border-box; font-size: 0.82rem; border: 1px solid var(--accent); background: #f5f8ff; color: #1a1a1a; border-radius: 4px; padding: 4px 5px; }
+        .pdt-sec-chrono { flex: 1; min-width: 110px; padding: 6px 8px; border-right: 1px solid #e0e0e0; }
+        .pdt-sec-chrono textarea { width: 100%; min-height: 55px; resize: vertical; box-sizing: border-box; font-size: 0.82rem; border: 1px solid var(--accent); background: #f5f8ff; color: #1a1a1a; border-radius: 3px; padding: 4px; }
+        .pdt-sec-notes { width: 130px; flex-shrink: 0; padding: 6px 8px; background: #f8f8fc; border-right: 1px solid #e0e0e0; }
+        .pdt-sec-notes textarea { width: 100%; min-height: 55px; resize: vertical; box-sizing: border-box; font-size: 0.82rem; border: 1px solid #ccc; background: #fff; color: #444; border-radius: 3px; padding: 4px; }
+        .pdt-date-text { background: #ffffff; color: #1a1a1a; border: 1px solid #bbb; padding: 4px 6px; border-radius: 4px; font-size: 0.85rem; width: 90px; cursor: text; box-sizing: border-box; }
+        .pdt-date-text.error { border-color: var(--danger); }
+        .pdt-date-cal { background: #ffffff; color: #1a1a1a; border: 1px solid #bbb; padding: 4px 4px; border-radius: 4px; font-size: 0.85rem; width: 28px; cursor: pointer; box-sizing: border-box; overflow: hidden; opacity: 0; position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+        .pdt-date-cal-wrap { position: relative; width: 28px; height: 28px; flex-shrink: 0; }
+        .pdt-date-cal-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; pointer-events: none; background: #f0f0f5; border: 1px solid #bbb; border-radius: 4px; cursor: pointer; }
+
+        /* Dailies / Listes styles */
+        .dlst-list-container { min-width: 420px; flex-shrink: 0; background: #fff; border-radius: 8px; padding: 15px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .dlst-list-grid-row { display: grid; grid-template-columns: 1fr 85px 65px 75px 100px; align-items: center; gap: 5px; }
+        .dlst-list-header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px; flex-wrap: wrap; gap: 10px; }
+        .dlst-list-title-area { flex: 1; min-width: 0; }
+        .dlst-list-finance-controls { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .dlst-price-col-cell { text-align: right; font-size: 0.85em; }
+        .dlst-discount-input, .dlst-price-input { width: 100% !important; padding: 4px !important; text-align: center; font-size: 0.85em; border: 1px solid #ccc; border-radius: 4px; background: #fff; }
+        .dlst-override { border: 2px solid var(--accent) !important; }
+        .dlst-total-list-display { font-size: 1.1em; font-weight: bold; color: var(--text); text-align: right; min-width: 75px; }
+        .dlst-hide-finance .dlst-finance-ui { display: none !important; }
+        .dlst-hide-finance .dlst-list-grid-row { grid-template-columns: 1fr 100px; }
+        .dlst-btn-view { background: none; border: none; cursor: pointer; font-size: 1.1em; filter: grayscale(1); transition: 0.2s; padding: 0; margin-left: 5px; }
+        .dlst-btn-view.active { filter: grayscale(0); }
+        .dlst-btn-apply-all { background: white; color: var(--accent); border: 1px solid var(--accent); border-radius: 50%; cursor: pointer; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+        .dlst-suggestions { position: absolute; background: white; width: 100%; z-index: 100; border: 1px solid #ccc; border-radius: 0 0 4px 4px; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .dlst-list-separator-view { background: #dfe6e9; padding: 4px; margin: 10px 0; border-radius: 4px; font-size: 0.7em; color: #2d3436; font-weight: bold; text-align: center; text-transform: uppercase; }
+        .dlst-minimized-section { margin-top: 30px; padding: 15px; background: #e9ecef; border-radius: 10px; border: 2px dashed #ccc; min-height: 60px; }
+        .dlst-minimized-wrapper { display: flex; gap: 10px; flex-wrap: wrap; }
+        .dlst-minimized-item { background: white; padding: 8px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 10px; border-left: 4px solid var(--accent); cursor: pointer; }
+        .dlst-minimized-info { line-height: 1.2; }
+        .dlst-minimized-name { font-weight: bold; font-size: 0.9em; display: block; }
+        .dlst-minimized-inv { font-size: 0.7em; color: #666; }
+        .dlst-pre-add-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+        .dlst-qty-picker { display: flex; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; background: #f1f1f1; }
+        .dlst-qty-picker button { width: 35px; border: none; background: #eee; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .dlst-qty-picker input { width: 60px; border: none; text-align: center; background: white; font-weight: bold; font-size: 15px; padding: 5px 0; }
+        .dlst-ipad-qty-btn { width: 45px; height: 35px; font-size: 18px; border-radius: 6px; background: #dcdde1; color: #2f3640; border: 1px solid #bdc3c7; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; }
+        .dlst-btn-delete-item { color: var(--danger); font-weight: bold; font-size: 18px; cursor: pointer; margin-left: 8px; border:none; background:none; padding:0; vertical-align: middle; }
+        .dlst-list-import-section { background: #ebf5fb; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: none; }
+        .dlst-list-import-section textarea { width: 100%; max-width: 100%; box-sizing: border-box; }
+        .dlst-manual-dot { color: var(--accent); margin-left: 5px; font-weight: bold; }
+        .dlst-recap-column { min-width: 420px; flex-shrink: 0; background: #fff; border-radius: 8px; padding: 15px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        #dlst-lists-wrapper, #dlst-finale-wrapper { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; align-items: flex-start; flex-wrap: nowrap; }
+        /* Inventaire Dailies */
+        .dlst-inv-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 5px solid var(--accent); }
+        .dlst-inv-card-info { flex-grow: 1; cursor: pointer; }
+        .dlst-inv-card-name { font-weight: bold; font-size: 1rem; color: var(--accent); }
+        .dlst-inv-card-meta { font-size: 0.8em; color: #777; margin-top: 4px; }
+        .dlst-btn-subtle { background: #dcdde1; color: #2f3640; border: 1px solid #bdc3c7; width: 32px; height: 32px; padding: 0; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+        .dlst-btn-add { background-color: #27ae60; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .dlst-btn-danger { background-color: var(--danger); color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .dlst-drag-handle { cursor: grab; font-size: 18px; color: #ccc; visibility: hidden; }
+        .dlst-reorder-active .dlst-drag-handle { visibility: visible; }
+        .dlst-row-separator td input { font-weight: bold; color: #607d8b; }
+        .dlst-rank-input { width: 60px !important; text-align: center; font-weight: bold; background: #f9f9f9 !important; border: 1px solid #ccc !important; padding: 6px; border-radius: 4px; box-sizing: border-box; }
+        .dlst-name-input { width: 100% !important; border: 1px solid #ccc !important; padding: 6px; border-radius: 4px; box-sizing: border-box; background: white; }
+        .dlst-val-input { width: 65px !important; text-align: center; border: 1px solid #ccc !important; padding: 6px; border-radius: 4px; box-sizing: border-box; background: white; }
+
+        /* ===== CALENDRIER ===== */
+        .cal-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid #dde0e6; border-top: 1px solid #dde0e6; }
+        .cal-week-header { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 0; }
+        .cal-week-section { background: #fff; border-radius: 8px; margin-bottom: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; border: 1px solid #dde0e6; }
+        .cal-header-cell { padding: 6px 4px; text-align: center; font-size: 0.72rem; font-weight: bold; color: #555; background: #eceef2; border-right: 1px solid #dde0e6; border-bottom: 1px solid #dde0e6; letter-spacing: 0.04em; text-transform: uppercase; }
+        .cal-header-cell.cal-weekend { background: #e4e6ec; color: #888; }
+        .cal-day-cell { border-right: 1px solid #dde0e6; border-bottom: 1px solid #dde0e6; min-height: 90px; display: flex; flex-direction: column; background: #fff; }
+        .cal-day-cell.cal-outside { background: #f5f5f7; }
+        .cal-day-cell.cal-weekend-cell { background: #fafafa; }
+        .cal-day-cell.cal-off-cell { background: #f0f0f0; }
+        .cal-day-num { font-size: 0.78rem; font-weight: bold; color: #aaa; padding: 5px 7px 2px 7px; text-align: right; line-height: 1; }
+        .cal-day-num.cal-today { background: var(--primary); color: #fff; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; margin-left: auto; margin-top: 4px; margin-right: 5px; font-size: 0.72rem; padding: 0; }
+        .cal-day-content { flex: 1; padding: 2px 6px 6px 6px; display: flex; flex-direction: column; gap: 2px; }
+        .cal-day-jourlabel { font-size: 0.78rem; font-weight: bold; color: var(--accent); }
+        .cal-day-lieu { font-size: 0.68rem; color: #666; font-style: italic; line-height: 1.3; }
+        .cal-day-horaire { font-size: 0.68rem; color: #888; }
+        .cal-day-off-label { font-size: 0.78rem; color: #999; font-style: italic; text-align: center; padding: 6px 4px 0 4px; }
+        .cal-dailies-row { display: grid; grid-template-columns: repeat(7, 1fr); border-left: 1px solid #dde0e6; }
+        .cal-daily-cell { border-right: 1px solid #dde0e6; overflow: hidden; }
+        .cal-daily-band { font-size: 0.6rem; font-weight: bold; color: #fff; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.8; display: block; }
+        .cal-daily-cell.cal-outside-daily { background: #f5f5f7; border-right: 1px solid #dde0e6; }
+        .cal-break-header { background: #ededf5; color: #888; text-align: center; padding: 7px 12px; font-size: 0.75rem; font-style: italic; border-radius: 6px; margin: 10px 0; border: 1px solid #dde0e6; }
+        .cal-month-label { font-size: 0.8rem; font-weight: bold; color: var(--primary); margin-bottom: 6px; margin-top: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div id="home-page" class="page">
+        <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h1>VT Longs Projets</h1>
+            <button onclick="toggleArchived()" title="Afficher/masquer les projets archivés" style="background:none; border:none; cursor:pointer; font-size:1.5rem; color:var(--accent);">👁</button>
+        </div>
+        <button class="btn btn-primary" onclick="createNewProject()">+ Nouveau Projet</button>
+        <div id="project-list" style="margin-top:20px;"></div>
+        <div id="archived-section" class="hidden">
+            <div style="border-top: 2px dashed #d0d0d0; margin-top:30px; padding-top:20px;">
+                <h3 style="color:#888; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px;">Projets archivés</h3>
+                <div id="archived-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="project-page" class="hidden">
+        <div id="project-header-band" style="display: flex; align-items: center; background: #eeeeee; padding: 10px 16px; border-bottom: 3px solid #d0d0d0; gap: 16px; flex-wrap: wrap;">
+            <button class="btn btn-outline" onclick="goBack()">←</button>
+            <div style="flex-grow:1;">
+                <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
+                    <h3 id="view-project-title" style="margin:0; color: #1a1a1a;">Nom du Projet</h3>
+                    <span id="view-project-color-label" style="font-size:0.8rem; font-weight:bold;"></span>
+                </div>
+                <div id="view-project-meta" style="font-size:0.72rem; color:#777; margin-top:3px;"></div>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <div class="tab active" onclick="switchTab(0)">1. Chronologie</div>
+            <div class="tab" onclick="switchTab(1)">2. Plan de travail</div>
+            <div class="tab" onclick="switchTab(2)">3. Listes</div>
+            <div class="tab" onclick="switchTab(3)">4. Calendrier</div>
+            <div class="tab" onclick="switchTab(4)">5. PDF</div>
+        </div>
+
+        <div id="tab-content" class="page">
+            <div id="tab-0">
+                <div class="toolbar">
+                    <button class="btn btn-outline" onclick="addColumn()">+ Colonne</button>
+                    <button class="btn btn-outline" onclick="toggleCopyPaste()">Import/Export</button>
+                    <div style="margin-left: auto; display: flex; align-items: center;">
+                        <span style="font-size: 0.8rem; font-weight: bold;">RÉORGANISER</span>
+                        <label class="switch">
+                            <input type="checkbox" id="drag-toggle" onchange="toggleChronoDrag()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="io-section" class="hidden">
+                    <textarea id="copy-paste-area" style="width:100%; height:150px; font-family:monospace;"></textarea>
+                    <button class="btn btn-primary" onclick="processPaste()">Appliquer l'import</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="chrono-table">
+                        <thead><tr id="chrono-header"></tr></thead>
+                        <tbody id="chrono-body"></tbody>
+                    </table>
+                </div>
+                <button class="btn btn-primary" style="margin-top:15px;" onclick="addRow()">+ Ajouter une Scène</button>
+            </div>
+
+            <div id="tab-1" class="hidden">
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="addPdtDay()">+ Ajouter Jour</button>
+                    <button class="btn btn-outline" onclick="addManualOffDay()" style="margin-left:8px;">+ Jour OFF</button>
+                    <button class="btn btn-outline" onclick="openBlocModal()" style="margin-left:8px;">+ Changement de Bloc</button>
+                    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                        <button onclick="toggleAllPdtDays()" style="background:none; border:1px solid var(--accent); color:var(--accent); border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.8rem; font-weight:bold;">👁 All</button>
+                        <span style="font-size: 0.8rem; font-weight: bold;">RÉORGANISER</span>
+                        <label class="switch">
+                            <input type="checkbox" id="pdt-drag-toggle" onchange="togglePdtDrag()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="bloc-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:1000; align-items:center; justify-content:center;">
+                    <div style="background:#ffffff; border:1px solid #ccc; border-radius:10px; padding:28px 32px; min-width:320px; max-width:400px; width:100%;">
+                        <div style="font-size:1rem; font-weight:bold; color:var(--accent); margin-bottom:18px;">Dates OFF entre deux blocs ?</div>
+                        <div style="display:flex; gap:12px; margin-bottom:10px;">
+                            <div style="flex:1;">
+                                <label style="font-size:0.78rem; color:#555; display:block; margin-bottom:4px;">Début ?</label>
+                                <input type="date" id="bloc-debut" style="width:100%; box-sizing:border-box; padding:6px 8px; background:#fff; color:#1a1a1a; border:1px solid #bbb; border-radius:5px; font-size:0.9rem;"
+                                    oninput="validateBlocModal()" onchange="validateBlocModal()">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:0.78rem; color:#555; display:block; margin-bottom:4px;">Fin ?</label>
+                                <input type="date" id="bloc-fin" style="width:100%; box-sizing:border-box; padding:6px 8px; background:#fff; color:#1a1a1a; border:1px solid #bbb; border-radius:5px; font-size:0.9rem;"
+                                    oninput="validateBlocModal()" onchange="validateBlocModal()">
+                            </div>
+                        </div>
+                        <div id="bloc-modal-error" style="color:var(--danger); font-size:0.8rem; min-height:18px; margin-bottom:12px;"></div>
+                        <div style="display:flex; gap:10px; justify-content:flex-end;">
+                            <button onclick="closeBlocModal()" style="background:none; border:1px solid #bbb; color:#555; border-radius:5px; padding:6px 18px; cursor:pointer; font-size:0.85rem;">Annuler</button>
+                            <button id="bloc-modal-add" onclick="addChangementBloc()" style="background:var(--primary); border:none; color:white; border-radius:5px; padding:6px 18px; cursor:pointer; font-size:0.85rem; font-weight:bold;">Ajouter</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pdt-main-container"></div>
+            </div>
+
+            <div id="tab-2" class="hidden">
+                <!-- Dailies : Listes (integre depuis VT Pub) -->
+                <div id="dlst-view-listes">
+                    <div class="toolbar" style="align-items:flex-start; flex-wrap:wrap; gap:15px;">
+                        <div style="background:white; padding:15px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end; flex:1; min-width:300px;">
+                            <div style="flex:2; min-width:200px;">
+                                <div style="font-size:0.8rem; color:#555; margin-bottom:6px; font-weight:bold;">+ Nouvelle Liste</div>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <input type="text" id="dlst-new-list-name" placeholder="Ex: Camion, Studio..." style="flex:1; min-width:120px; padding:7px 10px; border:1px solid #ccc; border-radius:4px; font-size:13px; background:white; width:auto;">
+                                    <select id="dlst-new-list-inv-source" style="flex:1; min-width:120px; padding:7px; border:1px solid #ccc; border-radius:4px; font-size:13px; background:white; width:auto;"></select>
+                                    <button class="dlst-btn-add" onclick="dlstCreateNewList()">AJOUTER</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center; margin-left:auto; flex-wrap:wrap;">
+                            <button class="btn" style="background:#f39c12; color:white; padding:8px 14px; font-size:0.85rem; border:none;" id="dlst-btn-recap" onclick="dlstToggleFinaleView()">&#128202; RECAPITULATIF</button>
+                            <button class="btn btn-outline" onclick="dlstShowInventories()">&#128230; INVENTAIRES</button>
+                        </div>
+                    </div>
+
+                    <div id="dlst-lists-wrapper" style="margin-top:20px; display:flex; gap:20px; overflow-x:auto; padding-bottom:20px; align-items:flex-start; flex-wrap:nowrap;"></div>
+                    <div id="dlst-minimized-section" class="dlst-minimized-section" style="display:none;">
+                        <div id="dlst-minimized-wrapper" class="dlst-minimized-wrapper"></div>
+                    </div>
+
+                    <div id="dlst-finale-view" style="display:none; margin-top:20px; background:white; padding:20px; border-radius:8px; min-height:200px;">
+                        <div style="display:flex; justify-content:flex-end; margin-bottom:15px;">
+                            <button class="btn btn-outline" style="font-size:0.8rem;" onclick="dlstCopyAllLists()">COPIER LE RECAPITULATIF COMPLET</button>
+                        </div>
+                        <div id="dlst-finale-wrapper" style="display:flex; gap:20px; overflow-x:auto; padding-bottom:20px; align-items:flex-start; flex-wrap:nowrap;"></div>
+                    </div>
+                </div>
+
+                <!-- Page Inventaires Dailies -->
+                <div id="dlst-view-inventories" style="display:none;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+                        <button class="btn btn-outline" onclick="dlstShowListes()">&#8592; Retour aux Listes</button>
+                        <h3 style="margin:0; color:var(--accent);">Inventaires</h3>
+                    </div>
+                    <div style="background:white; padding:15px; border-radius:8px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="dlst-new-inv-name" placeholder="Nom de l'inventaire..." style="flex-grow:1; padding:8px; border:1px solid #ccc; border-radius:4px; background:white; width:auto;">
+                            <button class="dlst-btn-add" onclick="dlstCreateNewInventory()">CREER</button>
+                        </div>
+                    </div>
+                    <div id="dlst-inventories-list"></div>
+                </div>
+
+                <!-- Editeur d'inventaire Dailies -->
+                <div id="dlst-view-edit-inventory" style="display:none;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; flex-wrap:wrap;">
+                        <button class="btn btn-outline" onclick="dlstShowInventories()">&#8592; Retour</button>
+                        <h3 id="dlst-edit-inv-title" style="margin:0; color:var(--accent);">Modifier Inventaire</h3>
+                    </div>
+                    <div class="toolbar" style="flex-wrap:wrap; gap:8px;">
+                        <button class="dlst-btn-add" onclick="dlstAddInvRow()">+ ITEM</button>
+                        <button class="btn btn-outline" onclick="dlstAddInvSep()">+ SEPARATEUR</button>
+                        <button class="btn btn-outline" onclick="dlstToggleInvImportExport()">TABLEUR (IMPORT / EXPORT)</button>
+                        <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:0.8rem; font-weight:bold;">REORGANISER</span>
+                            <label class="switch">
+                                <input type="checkbox" id="dlst-reorder-toggle" onchange="dlstToggleReorderMode()">
+                                <span class="slider"></span>
+                            </label>
+                            <button class="btn btn-danger" style="font-size:0.8rem;" onclick="dlstClearCurrentInventory()">EFFACER TOUT</button>
+                        </div>
+                    </div>
+                    <div id="dlst-inv-import-section" style="display:none; background:#fff3cd; padding:15px; border-radius:8px; margin-bottom:15px;">
+                        <p style="margin-top:0; font-size:0.8em; color:#666;">Format tableur : Copiez depuis Excel/Sheets ou collez ici pour ecraser.</p>
+                        <textarea id="dlst-inv-import-text" style="height:120px; font-family:monospace; font-size:12px; margin-bottom:10px; width:100%; background:white; border:1px solid #ccc; border-radius:4px; padding:8px; box-sizing:border-box;"></textarea>
+                        <button class="dlst-btn-add" style="width:100%;" onclick="dlstProcessInvImport()">IMPORTER (ECRASER L'INVENTAIRE)</button>
+                    </div>
+                    <div style="overflow-x:auto; background:white; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                        <table id="dlst-inv-table" style="width:100%; border-collapse:collapse; min-width:400px;">
+                            <thead>
+                                <tr style="background:#f1f1f1;">
+                                    <th style="width:30px; padding:8px 5px; font-size:0.7em; text-transform:uppercase; border-bottom:2px solid #ddd; color:#666;"></th>
+                                    <th style="width:75px; padding:8px 5px; font-size:0.7em; text-transform:uppercase; border-bottom:2px solid #ddd; color:#666;">#</th>
+                                    <th style="padding:8px 5px; font-size:0.7em; text-transform:uppercase; border-bottom:2px solid #ddd; color:#666;">NOM / SEPARATEUR</th>
+                                    <th style="width:70px; padding:8px 5px; font-size:0.7em; text-transform:uppercase; border-bottom:2px solid #ddd; color:#666;">PRIX</th>
+                                    <th style="width:70px; padding:8px 5px; font-size:0.7em; text-transform:uppercase; border-bottom:2px solid #ddd; color:#666;">STOCK</th>
+                                    <th style="width:35px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="dlst-inv-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+            <div id="tab-3" class="hidden">
+                <div id="cal-container" style="overflow-x:auto;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let projects = JSON.parse(localStorage.getItem('gaffer_db')) || [];
+        let currentIdx = null;
+        let defaultColumns = ["Scene", "INT./EXT.", "Temp.", "Lieu", "Lieu de tournage", "Description"];
+        let isChronoDrag = false;
+        let isPdtDrag = false;
+
+        const CHRONO_COLORS = {
+            'Blanc':      '#f5f5f5',
+            'Bleu':       '#4a90d9',
+            'Rose':       '#f48fb1',
+            'Jaune':      '#ffd54f',
+            'Vert':       '#81c784',
+            "Verge d'Or": '#c8a800',
+            'Chamois':    '#c8a06a',
+            'Saumon':     '#ff8a65',
+            'Cerise':     '#c2185b'
+        };
+
+        function nowStr() {
+            const d = new Date();
+            return d.toLocaleDateString('fr-CA') + ' ' + d.toLocaleTimeString('fr-CA', {hour:'2-digit', minute:'2-digit'});
+        }
+
+        function save() { 
+            if (currentIdx !== null && projects[currentIdx]) {
+                projects[currentIdx].updatedAt = nowStr();
+            }
+            localStorage.setItem('gaffer_db', JSON.stringify(projects)); 
+        }
+
+        let showArchived = false;
+
+        function renderHome() {
+            const list = document.getElementById('project-list');
+            const archivedList = document.getElementById('archived-list');
+            list.innerHTML = '';
+            archivedList.innerHTML = '';
+
+            const active = projects.map((p, i) => ({p, i})).filter(({p}) => !p.archived);
+            const archived = projects.map((p, i) => ({p, i})).filter(({p}) => p.archived);
+
+            archived.sort((a, b) => {
+                if (!a.p.createdAt && !b.p.createdAt) return a.p.name.localeCompare(b.p.name);
+                if (!a.p.createdAt) return 1;
+                if (!b.p.createdAt) return -1;
+                const da = new Date(a.p.createdAt), db = new Date(b.p.createdAt);
+                if (db - da !== 0) return db - da;
+                return a.p.name.localeCompare(b.p.name);
+            });
+
+            function renderCard(p, i, isArch) {
+                const borderColor = CHRONO_COLORS[p.color] || '#333';
+                const selectedColor = CHRONO_COLORS[p.color] || '#e0e0e0';
+                const colorOptions = Object.keys(CHRONO_COLORS).map(c =>
+                    `<option value="${c}" ${p.color===c?'selected':''} style="color:${CHRONO_COLORS[c]}; background:#ffffff;">${c}</option>`
+                ).join('');
+                return `
+                <div class="project-card" style="border-color:${borderColor}; ${isArch ? 'opacity:0.7;' : ''}">
+                    <div class="project-info" onclick="openProject(${i})">
+                        <div class="project-name">${p.name}</div>
+                        <div class="project-meta">Créé : ${p.createdAt || '—'} &nbsp;|&nbsp; Modifié : ${p.updatedAt || '—'}</div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <select id="color-select-${i}" style="width:auto; padding:4px 6px; font-size:0.8rem; color:${selectedColor}; font-weight:bold;" onchange="setProjectColor(${i}, this.value)" onclick="event.stopPropagation()">${colorOptions}</select>
+                        <button class="btn btn-outline" style="padding:5px 10px; font-size:0.9rem;" onclick="renameProject(${i})">✏️</button>
+                        <button class="btn btn-outline" onclick="duplicateProject(${i})">Dupliquer</button>
+                        <button class="btn btn-outline" style="font-size:0.85rem;" onclick="toggleArchiveProject(${i})">${isArch ? '📤 Désarchiver' : '📥 Archiver'}</button>
+                        <button class="btn btn-danger" onclick="deleteProject(${i})">X</button>
+                    </div>
+                </div>`;
+            }
+
+            active.forEach(({p, i}) => { list.innerHTML += renderCard(p, i, false); });
+            archived.forEach(({p, i}) => { archivedList.innerHTML += renderCard(p, i, true); });
+        }
+
+        function toggleArchived() {
+            showArchived = !showArchived;
+            document.getElementById('archived-section').classList.toggle('hidden', !showArchived);
+        }
+
+        function toggleArchiveProject(i) {
+            projects[i].archived = !projects[i].archived;
+            projects[i].updatedAt = nowStr();
+            save(); renderHome();
+        }
+
+        function setProjectColor(i, color) {
+            projects[i].color = color;
+            projects[i].updatedAt = nowStr();
+            save(); renderHome();
+        }
+
+        function renameProject(i) {
+            let newName = prompt("Nouveau nom du projet :", projects[i].name);
+            if (newName && newName.trim()) {
+                projects[i].name = newName.trim();
+                projects[i].updatedAt = nowStr();
+                save(); renderHome();
+            }
+        }
+
+        function openProject(i) {
+            currentIdx = i;
+            if (!projects[i].chronoData) projects[i].chronoData = [];
+            if (!projects[i].columns) projects[i].columns = [...defaultColumns];
+            if (!projects[i].pdtDays) projects[i].pdtDays = [];
+            if (!projects[i].pdtNoteCols) projects[i].pdtNoteCols = ["Indications globales"];
+
+            const p = projects[i];
+            const borderColor = CHRONO_COLORS[p.color] || '#333';
+
+            document.getElementById('project-header-band').style.borderBottomColor = borderColor;
+            document.getElementById('view-project-title').innerText = p.name;
+            const colorLabel = document.getElementById('view-project-color-label');
+            colorLabel.innerText = p.color || '';
+            colorLabel.style.color = borderColor;
+            document.getElementById('view-project-meta').innerText = 'Créé : ' + (p.createdAt || '—');
+
+            switchTab(0);
+            document.getElementById('home-page').classList.add('hidden');
+            document.getElementById('project-page').classList.remove('hidden');
+        }
+
+        function toggleChronoDrag() { isChronoDrag = document.getElementById('drag-toggle').checked; renderChrono(); }
+
+        function renderChrono() {
+            const header = document.getElementById('chrono-header');
+            const body = document.getElementById('chrono-body');
+            const cols = projects[currentIdx].columns;
+
+            const smallCols = ["Scene", "INT./EXT.", "Temp."];
+            const medCols = ["Lieu", "Lieu de tournage"];
+
+            header.innerHTML = '';
+            if (isChronoDrag) {
+                header.innerHTML += '<th style="width:30px;"></th>'; 
+                header.innerHTML += '<th style="width:45px; color:#666; font-size:0.8rem;">#</th>'; 
+            }
+            header.innerHTML += cols.map((c, ci) => {
+                const isScene = (c === "Scene");
+                let moveBtns = "";
+                if (isChronoDrag && !isScene) {
+                    moveBtns = `<div style="display:flex; gap:2px;">
+                        <button class="col-nav" onclick="moveColumn(${ci}, -1)">‹</button>
+                        <button class="col-nav" onclick="moveColumn(${ci}, 1)">›</button>
+                    </div>`;
+                }
+                return `<th>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="${isScene ? 'col-fixed' : 'col-name'}" onclick="${isScene ? '' : `renameColumn(${ci})`}">${c}</span>
+                        ${moveBtns}
+                        ${(!isScene && isChronoDrag) ? `<button onclick="removeCol(${ci})" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:10px;">✕</button>` : ''}
+                    </div>
+                </th>`;
+            }).join('');
+            if (isChronoDrag) header.innerHTML += '<th style="width:30px;"></th>'; 
+
+            body.innerHTML = '';
+            projects[currentIdx].chronoData.forEach((row, ri) => {
+                let tr = document.createElement('tr');
+
+                if (isChronoDrag) {
+                    tr.draggable = true;
+                    let tdHandle = document.createElement('td');
+                    tdHandle.style.width = '30px';
+                    tdHandle.innerHTML = `<span class="handle">☰</span>`;
+                    tr.appendChild(tdHandle);
+                    tr.ondragstart = (e) => { e.dataTransfer.setData('ri', ri); tr.classList.add('dragging'); };
+                    tr.ondragover = (e) => e.preventDefault();
+                    tr.ondrop = (e) => {
+                        let from = parseInt(e.dataTransfer.getData('ri'));
+                        let item = projects[currentIdx].chronoData.splice(from, 1)[0];
+                        projects[currentIdx].chronoData.splice(ri, 0, item);
+                        save(); renderChrono();
+                    };
+
+                    let tdNum = document.createElement('td');
+                    tdNum.style.width = '45px';
+                    let numInput = document.createElement('input');
+                    numInput.type = 'number';
+                    numInput.min = 1;
+                    numInput.max = projects[currentIdx].chronoData.length;
+                    numInput.value = ri + 1;
+                    numInput.style.cssText = 'width:38px; padding:3px; font-size:0.8rem; text-align:center;';
+                    numInput.onchange = function() {
+                        let target = parseInt(this.value) - 1;
+                        const len = projects[currentIdx].chronoData.length;
+                        if (isNaN(target) || target < 0) target = 0;
+                        if (target >= len) target = len - 1;
+                        let item = projects[currentIdx].chronoData.splice(ri, 1)[0];
+                        projects[currentIdx].chronoData.splice(target, 0, item);
+                        save(); renderChrono();
+                    };
+                    tdNum.appendChild(numInput);
+                    tr.appendChild(tdNum);
+                }
+
+                cols.forEach(col => {
+                    let td = document.createElement('td');
+                    const isSmall = smallCols.includes(col);
+                    const isMed = medCols.includes(col);
+                    let inputStyle = '';
+                    if (isSmall) {
+                        inputStyle = 'width:auto; min-width:40px; max-width:90px;';
+                    } else if (isMed) {
+                        inputStyle = 'width:130px;';
+                    } else {
+                        let textarea = document.createElement('textarea');
+                        textarea.value = row[col] || '';
+                        textarea.disabled = isChronoDrag;
+                        textarea.style.cssText = 'width:100%; min-width:180px; min-height:60px; resize:both; box-sizing:border-box;';
+                        textarea.oninput = function() { updateChronoCell(ri, col, this.value); };
+                        td.appendChild(textarea);
+                        tr.appendChild(td);
+                        return;
+                    }
+                    td.innerHTML = `<input type="text" value="${(row[col]||'').replace(/"/g,'&quot;')}" style="${inputStyle}" oninput="updateChronoCell(${ri}, '${col}', this.value)" ${isChronoDrag?'disabled':''}>`;
+                    tr.appendChild(td);
+                });
+
+                if (isChronoDrag) {
+                    let tdDel = document.createElement('td');
+                    tdDel.style.width = '30px';
+                    tdDel.innerHTML = `<button onclick="removeRow(${ri})" title="Supprimer" style="background:none; border:none; cursor:pointer; font-size:1rem; color:#aaa; padding:2px 4px;">🗑️</button>`;
+                    tr.appendChild(tdDel);
+                }
+
+                body.appendChild(tr);
+            });
+        }
+
+        function moveColumn(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= projects[currentIdx].columns.length) return;
+            if (projects[currentIdx].columns[newIndex] === "Scene" || projects[currentIdx].columns[index] === "Scene") return;
+            const cols = projects[currentIdx].columns;
+            [cols[index], cols[newIndex]] = [cols[newIndex], cols[index]];
+            save(); renderChrono();
+        }
+
+        function renameColumn(ci) {
+            let oldName = projects[currentIdx].columns[ci];
+            let newName = prompt("Nouveau nom :", oldName);
+            if (newName && newName !== oldName) {
+                projects[currentIdx].chronoData.forEach(row => { row[newName] = row[oldName]; delete row[oldName]; });
+                projects[currentIdx].columns[ci] = newName;
+                save(); renderChrono();
+            }
+        }
+
+        function removeCol(ci) {
+            if(confirm("Supprimer la colonne ?")) { projects[currentIdx].columns.splice(ci, 1); save(); renderChrono(); }
+        }
+
+        function updateChronoCell(ri, col, val) {
+            projects[currentIdx].chronoData[ri][col] = val;
+            save();
+        }
+
+        function addColumn() {
+            let n = prompt("Nom de la colonne ?");
+            if(n) { projects[currentIdx].columns.push(n); save(); renderChrono(); }
+        }
+
+        function addRow() { projects[currentIdx].chronoData.push({}); save(); renderChrono(); }
+        function removeRow(ri) { projects[currentIdx].chronoData.splice(ri, 1); save(); renderChrono(); }
+
+        function toggleCopyPaste() { 
+            const sec = document.getElementById('io-section');
+            sec.classList.toggle('hidden');
+            if(!sec.classList.contains('hidden')) {
+                const cols = projects[currentIdx].columns;
+                let txt = cols.join('\t') + '\n';
+                projects[currentIdx].chronoData.forEach(row => {
+                    txt += cols.map(c => row[c] || '').join('\t') + '\n';
+                });
+                document.getElementById('copy-paste-area').value = txt;
+            }
+        }
+
+        function processPaste() {
+            const txt = document.getElementById('copy-paste-area').value.trim();
+            if(!txt) return;
+            const lines = txt.split('\n');
+            const headers = lines[0].split('\t').map(h => h.trim());
+            projects[currentIdx].columns = headers;
+            projects[currentIdx].chronoData = lines.slice(1).map(l => {
+                let vals = l.split('\t');
+                let obj = {};
+                headers.forEach((h, i) => obj[h] = vals[i] || '');
+                return obj;
+            });
+            save(); renderChrono();
+            toggleCopyPaste();
+        }
+
+        function togglePdtDrag() { isPdtDrag = document.getElementById('pdt-drag-toggle').checked; renderPdt(); }
+
+        function movePdtSceneGlobal(fromGlobal, toGlobal) {
+            const p = projects[currentIdx];
+            let flat = [];
+            p.pdtDays.forEach((day, di) => {
+                day.scenes.forEach((sIdx, si) => { flat.push({ di, si, sIdx }); });
+            });
+            if (fromGlobal < 0 || fromGlobal >= flat.length) return;
+            if (toGlobal < 0 || toGlobal >= flat.length) return;
+
+            const src = flat[fromGlobal];
+            p.pdtDays[src.di].scenes.splice(src.si, 1);
+
+            flat = [];
+            p.pdtDays.forEach((day, di) => {
+                day.scenes.forEach((sIdx, si) => { flat.push({ di, si }); });
+            });
+
+            const adjustedTo = Math.min(toGlobal, flat.length);
+            if (adjustedTo >= flat.length) {
+                const lastDi = p.pdtDays.length - 1;
+                p.pdtDays[lastDi].scenes.push(src.sIdx);
+            } else {
+                const dst = flat[adjustedTo];
+                p.pdtDays[dst.di].scenes.splice(dst.si, 0, src.sIdx);
+            }
+            save(); renderPdt();
+        }
+
+        function renderPdt() {
+            const container = document.getElementById('pdt-main-container');
+            container.innerHTML = '';
+            const p = projects[currentIdx];
+
+            const baseCols = ["Scene", "INT./EXT.", "Temp.", "Lieu", "Lieu de tournage"];
+            const dynCols = p.columns.filter(c => !baseCols.includes(c));
+            const manualNotes = (p.pdtNoteCols || []).filter(n => !dynCols.includes(n));
+            const linkedCols = p.columns.filter(c => !["Scene","INT./EXT.","Temp.","Lieu"].includes(c));
+
+            const totalScenes = p.pdtDays.reduce((s, d) => s + d.scenes.length, 0);
+            const dayOffsets = [];
+            let offset = 0;
+            p.pdtDays.forEach(day => { dayOffsets.push(offset); offset += day.scenes.length; });
+            const totalDays = p.pdtDays.length;
+
+            function parseDate(str) {
+                if (!str) return null;
+                const [y,m,d] = str.split('-').map(Number);
+                const dt = new Date(y, m-1, d);
+                return isNaN(dt.getTime()) ? null : dt;
+            }
+            function addDays(d, n) {
+                const r = new Date(d); r.setDate(r.getDate() + n); return r;
+            }
+            function dateToISO(d) {
+                const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+                return `${y}-${m}-${dd}`;
+            }
+            function formatDateFR(str) {
+                if (!str) return '';
+                const [y,m,d] = str.split('-');
+                return `${y}/${m}/${d}`;
+            }
+
+            const pdtBlocs = p.pdtBlocs || [];
+            const manualOffDays = p.manualOffDays || [];
+
+            function getBlocForDate(dateISO) {
+                return pdtBlocs.find(b => dateISO >= b.debut && dateISO <= b.fin);
+            }
+
+            let dayNum = 0;
+            const blocks = []; 
+
+            for (let di = 0; di < p.pdtDays.length; di++) {
+                blocks.push({ type: 'real', di });
+                if (di < p.pdtDays.length - 1) {
+                    const d1 = parseDate(p.pdtDays[di].date);
+                    const d2 = parseDate(p.pdtDays[di + 1].date);
+                    if (d1 && d2) {
+                        const diff = Math.round((d2 - d1) / 86400000);
+                        if (diff < 0) {
+                            blocks.push({ type: 'error' });
+                        } else if (diff > 1) {
+                            const offDates = [];
+                            for (let k = 1; k < diff; k++) {
+                                offDates.push(dateToISO(addDays(d1, k)));
+                            }
+                            let i = 0;
+                            while (i < offDates.length) {
+                                const blk = getBlocForDate(offDates[i]);
+                                if (blk) {
+                                    blocks.push({ type: 'bloc', debut: blk.debut, fin: blk.fin, idx: pdtBlocs.indexOf(blk) });
+                                    while (i < offDates.length && offDates[i] <= blk.fin) i++;
+                                } else {
+                                    blocks.push({ type: 'off', offDate: offDates[i] });
+                                    i++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            const dateErrors = new Set();
+            for (let di = 0; di < p.pdtDays.length - 1; di++) {
+                const d1 = parseDate(p.pdtDays[di].date);
+                const d2 = parseDate(p.pdtDays[di + 1].date);
+                if (d1 && d2 && d2 < d1) {
+                    dateErrors.add(di);
+                    dateErrors.add(di + 1);
+                }
+            }
+
+            let firstRealDate = null, lastRealDate = null;
+            for (let d of p.pdtDays) {
+                if (d.date) {
+                    if (!firstRealDate || d.date < firstRealDate) firstRealDate = d.date;
+                    if (!lastRealDate || d.date > lastRealDate) lastRealDate = d.date;
+                }
+            }
+
+            let preOffs = [], postOffs = [];
+            if (firstRealDate) {
+                preOffs = manualOffDays.filter(d => d < firstRealDate).sort();
+            } else {
+                preOffs = manualOffDays.slice().sort();
+            }
+
+            if (lastRealDate) {
+                postOffs = manualOffDays.filter(d => d > lastRealDate).sort();
+            }
+
+            const preBlocks = preOffs.map(d => ({ type: 'off', offDate: d, manual: true }));
+            const postBlocks = postOffs.map(d => ({ type: 'off', offDate: d, manual: true }));
+
+            const allBlocks = [...preBlocks, ...blocks, ...postBlocks];
+
+            allBlocks.forEach(blk => {
+
+                if (blk.type === 'error') {
+                    let errDiv = document.createElement('div');
+                    errDiv.style.cssText = 'background:#fff0f2; border:2px solid var(--danger); border-radius:6px; margin-bottom:8px; padding:8px 14px; color:var(--danger); font-size:0.82rem; font-weight:bold;';
+                    errDiv.textContent = '⚠ Erreur : les dates de ces journées sont dans le mauvais ordre.';
+                    container.appendChild(errDiv);
+                    return;
+                }
+
+                if (blk.type === 'bloc') {
+                    const blocDiv = document.createElement('div');
+                    blocDiv.style.cssText = 'background:#e8f0ff; border:1px solid #5c35b5; border-radius:6px; margin-bottom:8px; padding:8px 14px; display:flex; align-items:center; gap:14px;';
+
+                    let blocLabel = document.createElement('strong');
+                    blocLabel.textContent = 'Changement de bloc';
+                    blocLabel.style.cssText = 'color:#5c35b5; font-size:0.88rem; white-space:nowrap;';
+                    blocDiv.appendChild(blocLabel);
+
+                    let blocDates = document.createElement('span');
+                    blocDates.textContent = blk.debut + ' au ' + blk.fin;
+                    blocDates.style.cssText = 'color:#7a5cc0; font-size:0.82rem;';
+                    blocDiv.appendChild(blocDates);
+
+                    if (isPdtDrag) {
+                        let spacer = document.createElement('span');
+                        spacer.style.flex = '1';
+                        blocDiv.appendChild(spacer);
+                        let btnX = document.createElement('button');
+                        btnX.textContent = '✕';
+                        btnX.title = 'Supprimer ce changement de bloc';
+                        btnX.style.cssText = 'background:none; border:none; color:#aaa; cursor:pointer; font-size:1rem;';
+                        btnX.onclick = function() {
+                            projects[currentIdx].pdtBlocs.splice(blk.idx, 1);
+                            save(); renderPdt();
+                        };
+                        blocDiv.appendChild(btnX);
+                    }
+
+                    container.appendChild(blocDiv);
+                    return;
+                }
+
+                if (blk.type === 'off') {
+                    const isManual = blk.manual;
+                    const savedOffColor = (p.pdtOffColors && p.pdtOffColors[blk.offDate]) ? p.pdtOffColors[blk.offDate] : '#f5f5f8';
+                    
+                    const offBlock = document.createElement('div');
+                    offBlock.style.cssText = `background:${savedOffColor}; border:1px dashed #ccc; border-radius:6px; margin-bottom:8px; padding:7px 14px; display:flex; align-items:center; gap:12px;`;
+
+                    if (isPdtDrag) {
+                        let labelInp = document.createElement('input');
+                        labelInp.type = 'text';
+                        labelInp.value = (p.pdtOffLabels && p.pdtOffLabels[blk.offDate]) || 'OFF';
+                        labelInp.placeholder = 'OFF';
+                        labelInp.style.cssText = 'width:80px; font-weight:bold; color:#555; font-size:0.9rem; border:1px solid #ccc; border-radius:4px; padding:2px 6px;';
+                        labelInp.oninput = function() {
+                            if(!p.pdtOffLabels) p.pdtOffLabels = {};
+                            p.pdtOffLabels[blk.offDate] = this.value;
+                            save();
+                        };
+                        offBlock.appendChild(labelInp);
+                    } else {
+                        let offLabel = document.createElement('strong');
+                        offLabel.textContent = (p.pdtOffLabels && p.pdtOffLabels[blk.offDate]) || 'OFF';
+                        offLabel.style.cssText = 'color:#555; font-size:0.9rem; white-space:nowrap;';
+                        offBlock.appendChild(offLabel);
+                    }
+
+                    let offDate = document.createElement('span');
+                    offDate.textContent = formatDateFR(blk.offDate);
+                    offDate.style.cssText = 'color:#aaa; font-size:0.82rem;';
+                    offBlock.appendChild(offDate);
+
+                    if (isPdtDrag) {
+                        if (!p.pdtOffNotes) p.pdtOffNotes = {};
+                        let offNoteInp = document.createElement('input');
+                        offNoteInp.type = 'text';
+                        offNoteInp.value = p.pdtOffNotes[blk.offDate] || '';
+                        offNoteInp.placeholder = 'Note pour ce jour...';
+                        offNoteInp.style.cssText = 'flex:1; background:#fff; color:#555; border:1px solid #ccc; border-radius:4px; padding:3px 7px; font-size:0.82rem; margin-left:10px;';
+                        offNoteInp.oninput = function() {
+                            if (!p.pdtOffNotes) p.pdtOffNotes = {};
+                            p.pdtOffNotes[blk.offDate] = this.value;
+                            save();
+                        };
+                        offBlock.appendChild(offNoteInp);
+
+                        let colorWrap = document.createElement('div');
+                        colorWrap.style.cssText = 'position:relative; display:flex; align-items:center; gap:4px; margin-left:auto;';
+
+                        let colorSwatch = document.createElement('div');
+                        colorSwatch.style.cssText = 'width:18px; height:18px; border-radius:3px; border:1px solid #bbb; background:' + savedOffColor + '; cursor:pointer; flex-shrink:0;';
+
+                        let colorPanel = document.createElement('div');
+                        colorPanel.className = 'color-panel-pdt';
+                        colorPanel.style.cssText = 'display:none; position:absolute; right:0; top:26px; background:#fff; border:1px solid #ccc; border-radius:6px; padding:8px; z-index:200; box-shadow:0 4px 12px rgba(0,0,0,0.12); width:175px;';
+
+                        const favColorsOff = ['#f5f5f8', '#fde8e8', '#fff8e0', '#e6f4ea', '#e3f0ff', '#f0e8ff', '#ffecd8', '#e0f7f5', '#fce4ec'];
+                        const userFavsOff = p.customFavColors || [];
+                        const allFavsOff = [...favColorsOff, ...userFavsOff];
+
+                        let favGrid = document.createElement('div');
+                        favGrid.style.cssText = 'display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;';
+                        allFavsOff.forEach(fc => {
+                            let sw = document.createElement('div');
+                            sw.style.cssText = 'width:22px; height:22px; border-radius:3px; border:1px solid #ccc; background:' + fc + '; cursor:pointer;';
+                            sw.onclick = function(e) {
+                                e.stopPropagation();
+                                if(!p.pdtOffColors) p.pdtOffColors = {};
+                                p.pdtOffColors[blk.offDate] = fc;
+                                offBlock.style.background = fc;
+                                colorSwatch.style.background = fc;
+                                save();
+                                colorPanel.style.display = 'none';
+                            };
+                            favGrid.appendChild(sw);
+                        });
+                        colorPanel.appendChild(favGrid);
+
+                        let custDiv = document.createElement('div');
+                        custDiv.style.cssText = 'display:flex; gap:5px; align-items:center; margin-top:5px;';
+                        let colorPicker = document.createElement('input');
+                        colorPicker.type = 'color';
+                        colorPicker.value = savedOffColor === '#f5f5f8' ? '#ffffff' : savedOffColor;
+                        colorPicker.style.cssText = 'flex:1; height:28px; border:none; padding:0; cursor:pointer;';
+                        colorPicker.onchange = function() {
+                            if(!p.pdtOffColors) p.pdtOffColors = {};
+                            p.pdtOffColors[blk.offDate] = this.value;
+                            offBlock.style.background = this.value;
+                            colorSwatch.style.background = this.value;
+                            save();
+                        };
+                        custDiv.appendChild(colorPicker);
+
+                        let addFavBtn = document.createElement('button');
+                        addFavBtn.textContent = '+Fav';
+                        addFavBtn.style.cssText = 'background:#eee; border:1px solid #ccc; border-radius:4px; padding:4px; font-size:0.75rem; cursor:pointer;';
+                        addFavBtn.onclick = function(e) {
+                            e.stopPropagation();
+                            if(!p.customFavColors) p.customFavColors = [];
+                            if(!p.customFavColors.includes(colorPicker.value)) {
+                                p.customFavColors.push(colorPicker.value);
+                                save(); renderPdt();
+                            }
+                        };
+                        custDiv.appendChild(addFavBtn);
+                        colorPanel.appendChild(custDiv);
+
+                        colorSwatch.onclick = function(e) {
+                            e.stopPropagation();
+                            const visible = colorPanel.style.display === 'block';
+                            document.querySelectorAll('.color-panel-pdt').forEach(el => el.style.display = 'none');
+                            colorPanel.style.display = visible ? 'none' : 'block';
+                        };
+
+                        let resetBtn = document.createElement('button');
+                        resetBtn.textContent = '↺';
+                        resetBtn.style.cssText = 'background:none; border:none; color:#bbb; cursor:pointer; font-size:1rem; padding:0 2px; margin-left:4px;';
+                        resetBtn.onclick = function() {
+                            if(p.pdtOffColors) delete p.pdtOffColors[blk.offDate];
+                            save(); renderPdt();
+                        };
+
+                        colorWrap.appendChild(colorSwatch);
+                        colorWrap.appendChild(colorPanel);
+                        colorWrap.appendChild(resetBtn);
+
+                        if (isManual) {
+                            let delBtn = document.createElement('button');
+                            delBtn.textContent = '✕';
+                            delBtn.style.cssText = 'background:none; border:none; color:#bbb; cursor:pointer; font-size:1rem; margin-left:8px;';
+                            delBtn.onclick = function() {
+                                p.manualOffDays = p.manualOffDays.filter(d => d !== blk.offDate);
+                                save(); renderPdt();
+                            };
+                            colorWrap.appendChild(delBtn);
+                        }
+
+                        offBlock.appendChild(colorWrap);
+
+                    } else {
+                        if (p.pdtOffNotes && p.pdtOffNotes[blk.offDate]) {
+                            let offNote = document.createElement('span');
+                            offNote.textContent = p.pdtOffNotes[blk.offDate];
+                            offNote.style.cssText = 'color:#888; font-size:0.82rem; font-style:italic; margin-left:10px;';
+                            offBlock.appendChild(offNote);
+                        }
+                    }
+
+                    container.appendChild(offBlock);
+                    return;
+                }
+
+                const di = blk.di;
+                const day = p.pdtDays[di];
+                dayNum++;
+                const dayNumStr = String(dayNum).padStart(2, '0');
+                const collapsed = day.collapsed || false;
+                const hasDateError = dateErrors.has(di);
+
+                let block = document.createElement('div');
+                block.className = 'pdt-day-block';
+                block.style.marginBottom = '20px';
+
+                let headerDiv = document.createElement('div');
+                headerDiv.className = 'pdt-header';
+                const savedHeaderColor = day.headerColor || '#e4e6ea';
+                headerDiv.style.cssText = 'background:' + savedHeaderColor + '; padding:8px 12px; display:flex; align-items:center; gap:10px; border-radius:6px 6px 0 0; flex-wrap:wrap;';
+
+                let nameEl = document.createElement('strong');
+                nameEl.textContent = 'JOUR ' + dayNumStr;
+                nameEl.style.cssText = 'white-space:nowrap;';
+                headerDiv.appendChild(nameEl);
+
+                let dateEl = document.createElement('div');
+                dateEl.style.cssText = 'display:flex; align-items:center; gap:4px;';
+
+                let dateTextInp = document.createElement('input');
+                dateTextInp.type = 'text';
+                dateTextInp.className = 'pdt-date-text' + (hasDateError ? ' error' : '');
+                dateTextInp.placeholder = 'AAAA-MM-JJ';
+                dateTextInp.value = day.date || '';
+                dateTextInp.maxLength = 10;
+                dateTextInp.oninput = function() {
+                    const v = this.value;
+                    if (v.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                        let clamped = v;
+                        if (clamped < '2024-01-01') clamped = '2024-01-01';
+                        if (clamped > '2065-01-01') clamped = '2065-01-01';
+                        p.pdtDays[di].date = clamped;
+                        if (clamped !== v) this.value = clamped;
+                        save(); renderPdt();
+                    } else if (v === '') {
+                        p.pdtDays[di].date = '';
+                        save(); renderPdt();
+                    }
+                };
+                dateEl.appendChild(dateTextInp);
+
+                let calWrap = document.createElement('div');
+                calWrap.className = 'pdt-date-cal-wrap';
+                let calIcon = document.createElement('div');
+                calIcon.className = 'pdt-date-cal-icon';
+                calIcon.textContent = '📅';
+                let calInp = document.createElement('input');
+                calInp.type = 'date';
+                calInp.className = 'pdt-date-cal';
+                calInp.min = '2024-01-01';
+                calInp.max = '2065-01-01';
+                calInp.value = day.date || '';
+                calInp.onchange = function() {
+                    let v = this.value;
+                    if (v) {
+                        if (v < '2024-01-01') v = '2024-01-01';
+                        if (v > '2065-01-01') v = '2065-01-01';
+                    }
+                    p.pdtDays[di].date = v;
+                    save(); renderPdt();
+                };
+                calWrap.appendChild(calIcon);
+                calWrap.appendChild(calInp);
+                dateEl.appendChild(calWrap);
+                headerDiv.appendChild(dateEl);
+
+                // Menu déroulant horaire (Jour / Mi-Jour Mi-Nuit / Nuit)
+                let horaireSelect = document.createElement('select');
+                horaireSelect.style.cssText = 'font-size:0.8rem; padding:3px 5px; border:1px solid #bbb; border-radius:4px; background:#fff; color:#1a1a1a; cursor:pointer; width:auto;';
+                horaireSelect.title = 'Horaire de la journée';
+                ['Jour', 'Mi-Jour Mi-Nuit', 'Nuit'].forEach(opt => {
+                    let o = document.createElement('option');
+                    o.value = opt; o.textContent = opt;
+                    if ((day.horaire || 'Jour') === opt) o.selected = true;
+                    horaireSelect.appendChild(o);
+                });
+                (function(capturedDi) {
+                    horaireSelect.onchange = function() {
+                        p.pdtDays[capturedDi].horaire = this.value;
+                        save();
+                    };
+                })(di);
+                headerDiv.appendChild(horaireSelect);
+
+                let btnAddScene = document.createElement('button');
+                btnAddScene.className = 'btn btn-outline';
+                btnAddScene.style.cssText = 'padding:4px 8px; font-size:0.8rem;';
+                btnAddScene.textContent = '+ Scène';
+                btnAddScene.onclick = function() { addSceneToDay(di); };
+                headerDiv.appendChild(btnAddScene);
+
+                let eyeBtn = document.createElement('button');
+                eyeBtn.title = collapsed ? 'Déplier' : 'Replier';
+                eyeBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--accent);';
+                eyeBtn.textContent = '👁';
+                eyeBtn.onclick = function() { togglePdtDay(di); };
+                headerDiv.appendChild(eyeBtn);
+
+                if (collapsed && day.scenes.length > 0) {
+                    let sceneBadges = document.createElement('span');
+                    sceneBadges.style.cssText = 'font-size:0.78rem; color:#777; letter-spacing:1px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;';
+                    day.scenes.forEach((sIdx, si) => {
+                        const globalIdx = dayOffsets[di] + si;
+                        let badge = document.createElement('span');
+                        badge.textContent = (sIdx == -1 || !p.chronoData[sIdx]) ? '?' : (p.chronoData[sIdx]['Scene'] || '?');
+                        badge.style.cssText = 'background:none; border:none; padding:0; cursor:default;';
+                        sceneBadges.appendChild(badge);
+
+                        if (si < day.scenes.length - 1) {
+                            let sep = document.createElement('span');
+                            sep.textContent = '·';
+                            sceneBadges.appendChild(sep);
+                        }
+                    });
+                    headerDiv.appendChild(sceneBadges);
+                }
+
+                if (isPdtDrag) {
+                    // Flèches haut/bas pour réorganiser les jours (échange le contenu)
+                    let arrowWrap = document.createElement('div');
+                    arrowWrap.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
+
+                    let btnUp = document.createElement('button');
+                    btnUp.textContent = '▲';
+                    btnUp.title = 'Déplacer vers le haut';
+                    btnUp.style.cssText = 'background:none; border:1px solid var(--accent); color:var(--accent); border-radius:3px; cursor:pointer; font-size:0.7rem; padding:1px 5px; line-height:1;';
+                    btnUp.disabled = (di === 0);
+                    if (di === 0) btnUp.style.opacity = '0.25';
+                    (function(capturedDi) {
+                        btnUp.onclick = function(e) { e.stopPropagation(); swapPdtDayContent(capturedDi, capturedDi - 1); };
+                    })(di);
+                    arrowWrap.appendChild(btnUp);
+
+                    let btnDown = document.createElement('button');
+                    btnDown.textContent = '▼';
+                    btnDown.title = 'Déplacer vers le bas';
+                    btnDown.style.cssText = 'background:none; border:1px solid var(--accent); color:var(--accent); border-radius:3px; cursor:pointer; font-size:0.7rem; padding:1px 5px; line-height:1;';
+                    btnDown.disabled = (di === p.pdtDays.length - 1);
+                    if (di === p.pdtDays.length - 1) btnDown.style.opacity = '0.25';
+                    (function(capturedDi) {
+                        btnDown.onclick = function(e) { e.stopPropagation(); swapPdtDayContent(capturedDi, capturedDi + 1); };
+                    })(di);
+                    arrowWrap.appendChild(btnDown);
+
+                    headerDiv.appendChild(arrowWrap);
+
+                    let spacerRight = document.createElement('span');
+                    spacerRight.style.flex = '1';
+                    headerDiv.appendChild(spacerRight);
+
+                    const baseFavColors = ['#e4e6ea','#fde8e8','#fff8e0','#e6f4ea','#e3f0ff','#f0e8ff','#ffecd8','#e0f7f5','#fce4ec'];
+                    const userFavs = p.customFavColors || [];
+                    const allFavColors = [...baseFavColors, ...userFavs];
+
+                    let colorWrap = document.createElement('div');
+                    colorWrap.style.cssText = 'position:relative; display:flex; align-items:center; gap:4px;';
+
+                    let colorSwatch = document.createElement('div');
+                    colorSwatch.style.cssText = 'width:18px; height:18px; border-radius:3px; border:1px solid #bbb; background:' + savedHeaderColor + '; cursor:pointer; flex-shrink:0;';
+                    colorSwatch.title = "Changer la couleur de l'en-tête";
+
+                    let colorPanel = document.createElement('div');
+                    colorPanel.className = 'color-panel-pdt';
+                    colorPanel.style.cssText = 'display:none; position:absolute; right:0; top:26px; background:#fff; border:1px solid #ccc; border-radius:6px; padding:8px; z-index:200; box-shadow:0 4px 12px rgba(0,0,0,0.12); width:175px;';
+
+                    let favGrid = document.createElement('div');
+                    favGrid.style.cssText = 'display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;';
+                    allFavColors.forEach(fc => {
+                        let sw = document.createElement('div');
+                        sw.style.cssText = 'width:22px; height:22px; border-radius:3px; border:1px solid #ccc; background:' + fc + '; cursor:pointer;';
+                        sw.title = fc;
+                        sw.onclick = function(e) {
+                            e.stopPropagation();
+                            p.pdtDays[di].headerColor = fc;
+                            headerDiv.style.background = fc;
+                            colorSwatch.style.background = fc;
+                            save();
+                            colorPanel.style.display = 'none';
+                        };
+                        favGrid.appendChild(sw);
+                    });
+                    colorPanel.appendChild(favGrid);
+
+                    let sep = document.createElement('div');
+                    sep.style.cssText = 'font-size:0.7rem; color:#999; margin-bottom:5px;';
+                    sep.textContent = 'Couleur personnalisée :';
+                    colorPanel.appendChild(sep);
+
+                    let custDiv = document.createElement('div');
+                    custDiv.style.cssText = 'display:flex; gap:5px; align-items:center;';
+                    let colorPicker = document.createElement('input');
+                    colorPicker.type = 'color';
+                    colorPicker.value = savedHeaderColor;
+                    colorPicker.style.cssText = 'flex:1; height:28px; border:none; padding:0; cursor:pointer;';
+                    colorPicker.oninput = function() {
+                        p.pdtDays[di].headerColor = this.value;
+                        headerDiv.style.background = this.value;
+                        colorSwatch.style.background = this.value;
+                        save();
+                    };
+                    custDiv.appendChild(colorPicker);
+
+                    let addFavBtn = document.createElement('button');
+                    addFavBtn.textContent = '+Fav';
+                    addFavBtn.style.cssText = 'background:#eee; border:1px solid #ccc; border-radius:4px; padding:4px; font-size:0.75rem; cursor:pointer;';
+                    addFavBtn.onclick = function(e) {
+                        e.stopPropagation();
+                        if(!p.customFavColors) p.customFavColors = [];
+                        if(!p.customFavColors.includes(colorPicker.value)) {
+                            p.customFavColors.push(colorPicker.value);
+                            save(); renderPdt();
+                        }
+                    };
+                    custDiv.appendChild(addFavBtn);
+                    colorPanel.appendChild(custDiv);
+
+                    colorSwatch.onclick = function(e) {
+                        e.stopPropagation();
+                        const visible = colorPanel.style.display === 'block';
+                        document.querySelectorAll('.color-panel-pdt').forEach(el => el.style.display = 'none');
+                        colorPanel.style.display = visible ? 'none' : 'block';
+                    };
+                    document.addEventListener('click', function() { if(colorPanel) colorPanel.style.display = 'none'; });
+
+                    colorWrap.appendChild(colorSwatch);
+                    colorWrap.appendChild(colorPanel);
+
+                    let resetBtn = document.createElement('button');
+                    resetBtn.textContent = '↺';
+                    resetBtn.title = 'Réinitialiser la couleur';
+                    resetBtn.style.cssText = 'background:none; border:none; color:#bbb; cursor:pointer; font-size:1rem; padding:0 2px;';
+                    resetBtn.onclick = function() {
+                        p.pdtDays[di].headerColor = '#e4e6ea';
+                        save(); renderPdt();
+                    };
+                    colorWrap.appendChild(resetBtn);
+                    headerDiv.appendChild(colorWrap);
+
+                    let btnDel = document.createElement('button');
+                    btnDel.style.cssText = 'background:none; border:none; color:#bbb; cursor:pointer; font-size:1rem;';
+                    btnDel.textContent = '✕';
+                    btnDel.onclick = function() { removePdtDay(di); };
+                    headerDiv.appendChild(btnDel);
+                } else {
+                    let spacer = document.createElement('span');
+                    spacer.style.marginLeft = 'auto';
+                    headerDiv.appendChild(spacer);
+                }
+
+                block.appendChild(headerDiv);
+
+                if (!collapsed) {
+                    let tbl = document.createElement('table');
+                    tbl.style.cssText = 'width:100%; border-collapse:collapse; table-layout:auto;';
+
+                    let thead = document.createElement('thead');
+                    let hRow = document.createElement('tr');
+                    let thLeft = document.createElement('th');
+                    thLeft.style.cssText = 'width:170px; min-width:170px; background:#eeeef2; color:var(--accent); font-size:0.75rem; padding:5px 8px; border:1px solid #ddd;';
+                    hRow.appendChild(thLeft);
+
+                    linkedCols.forEach(lc => {
+                        if (!p.columns.includes(lc)) return;
+                        let th = document.createElement('th');
+                        th.style.cssText = 'background:#f0eef8; color:var(--accent); font-size:0.75rem; padding:5px 8px; border:1px solid #ddd; min-width:150px;';
+                        th.textContent = lc;
+                        hRow.appendChild(th);
+                    });
+                    if (isPdtDrag) {
+                        let thTrash = document.createElement('th');
+                        thTrash.style.cssText = 'width:32px; background:#eeeef2; border:1px solid #ddd;';
+                        hRow.appendChild(thTrash);
+                    }
+                    thead.appendChild(hRow);
+                    tbl.appendChild(thead);
+
+                    function getRowspans(col) {
+                        const spans = day.scenes.map(() => 0);
+                        let i = 0;
+                        while (i < day.scenes.length) {
+                            const sIdx = day.scenes[i];
+                            const val = (sIdx != -1 && p.chronoData[sIdx]) ? (p.chronoData[sIdx][col] || '') : '';
+                            let j = i + 1;
+                            if (val !== '') {
+                                while (j < day.scenes.length) {
+                                    const sIdx2 = day.scenes[j];
+                                    const val2 = (sIdx2 != -1 && p.chronoData[sIdx2]) ? (p.chronoData[sIdx2][col] || '') : '';
+                                    if (val2 === val) j++;
+                                    else break;
+                                }
+                            }
+                            spans[i] = j - i;
+                            i = j;
+                        }
+                        return spans;
+                    }
+
+                    const rowspans = {};
+                    linkedCols.forEach(lc => { rowspans[lc] = getRowspans(lc); });
+
+                    let tbody = document.createElement('tbody');
+
+                    day.scenes.forEach((sIdx, si) => {
+                        const globalIdx = dayOffsets[di] + si;
+                        let tr = document.createElement('tr');
+
+                        let tdLeft = document.createElement('td');
+                        tdLeft.style.cssText = 'vertical-align:top; padding:10px; border:1px solid #ddd; width:170px; min-width:170px; background:#fafafa;';
+
+                        let sceneRowDiv = document.createElement('div');
+                        sceneRowDiv.style.cssText = 'display:flex; align-items:center; gap:4px; margin-bottom:5px;';
+                        let sceneLabel = document.createElement('span');
+                        sceneLabel.style.cssText = 'font-size:0.75rem; color:var(--primary); font-weight:bold; white-space:nowrap;';
+                        sceneLabel.textContent = 'Scene';
+                        sceneRowDiv.appendChild(sceneLabel);
+                        let sceneOptions = p.chronoData.map((c, idx) =>
+                            `<option value="${idx}" ${idx == sIdx ? 'selected' : ''}>${c.Scene || idx}</option>`
+                        ).join('');
+                        let sel = document.createElement('select');
+                        sel.style.cssText = 'flex:1; min-width:0; font-size:0.82rem; border:1px solid #bbb; background:#fff; color:#1a1a1a; border-radius:4px; padding:3px 4px;';
+                        sel.innerHTML = `<option value="-1">—</option>${sceneOptions}`;
+                        sel.onchange = function() { linkScene(di, si, this.value); };
+                        sceneRowDiv.appendChild(sel);
+                        tdLeft.appendChild(sceneRowDiv);
+
+                        if (sIdx != -1) {
+                            const sceneRow = p.chronoData[sIdx];
+                            let infoRow = document.createElement('div');
+                            infoRow.style.cssText = 'display:flex; gap:4px; margin-bottom:4px;';
+                            ['INT./EXT.', 'Temp.'].forEach(f => {
+                                if (p.columns.includes(f)) {
+                                    let inp = document.createElement('input');
+                                    inp.type = 'text';
+                                    inp.style.cssText = 'flex:1; min-width:0; font-size:0.8rem; border:1px solid var(--accent); background:#f5f8ff; color:#1a1a1a; border-radius:4px; padding:3px 5px; width:100%; box-sizing:border-box;';
+                                    inp.value = sceneRow[f] || '';
+                                    inp.placeholder = f;
+                                    inp.oninput = function() { updateChronoCell(sIdx, f, this.value); };
+                                    infoRow.appendChild(inp);
+                                }
+                            });
+                            tdLeft.appendChild(infoRow);
+                            if (p.columns.includes('Lieu')) {
+                                let inp = document.createElement('input');
+                                inp.type = 'text';
+                                inp.style.cssText = 'width:100%; box-sizing:border-box; font-size:0.8rem; border:1px solid var(--accent); background:#f5f8ff; color:#1a1a1a; border-radius:4px; padding:3px 5px;';
+                                inp.value = sceneRow['Lieu'] || '';
+                                inp.placeholder = 'Lieu';
+                                inp.oninput = function() { updateChronoCell(sIdx, 'Lieu', this.value); };
+                                tdLeft.appendChild(inp);
+                            }
+                        }
+                        tr.appendChild(tdLeft);
+
+                        linkedCols.forEach(lc => {
+                            if (!p.columns.includes(lc)) return;
+                            const span = rowspans[lc][si];
+                            if (span === 0) return;
+
+                            let td = document.createElement('td');
+                            td.rowSpan = span;
+                            td.style.cssText = 'vertical-align:top; padding:0; border:1px solid #ddd; background:#fafbff; min-width:150px;';
+                            let ta = document.createElement('textarea');
+                            ta.style.cssText = 'display:block; width:100%; height:100%; min-height:' + (span * 100) + 'px; box-sizing:border-box; resize:none; border:1px solid var(--accent); background:#f5f8ff; color:#1a1a1a; border-radius:0; padding:8px; font-size:0.85rem;';
+                            const val = (sIdx != -1 && p.chronoData[sIdx]) ? (p.chronoData[sIdx][lc] || '') : '';
+                            ta.value = val;
+                            ta.disabled = (sIdx == -1);
+                            ta.oninput = function() {
+                                if (sIdx != -1) {
+                                    for (let k = si; k < si + span; k++) {
+                                        const tIdx = day.scenes[k];
+                                        if (tIdx != -1) {
+                                            projects[currentIdx].chronoData[tIdx][lc] = this.value;
+                                        }
+                                    }
+                                    save();
+                                }
+                            };
+                            ta.onblur = function() { renderPdt(); };
+                            td.appendChild(ta);
+                            tr.appendChild(td);
+                        });
+
+                        if (isPdtDrag) {
+                            let tdDel = document.createElement('td');
+                            tdDel.style.cssText = 'width:32px; text-align:center; vertical-align:middle; border:1px solid #ddd; background:#f5f5f8;';
+                            let btnDel = document.createElement('button');
+                            btnDel.textContent = '🗑️';
+                            btnDel.title = 'Supprimer la scène';
+                            btnDel.style.cssText = 'background:none; border:none; color:#bbb; cursor:pointer; font-size:0.9rem; padding:2px;';
+                            btnDel.onclick = function() {
+                                projects[currentIdx].pdtDays[di].scenes.splice(si, 1);
+                                save(); renderPdt();
+                            };
+                            tdDel.appendChild(btnDel);
+                            tr.appendChild(tdDel);
+                        }
+
+                        tbody.appendChild(tr);
+                    });
+
+                    tbl.appendChild(tbody);
+                    block.appendChild(tbl);
+                }
+
+                container.appendChild(block);
+            }); 
+        }
+
+        function swapPdtDayContent(diA, diB) {
+            const p = projects[currentIdx];
+            if (diA < 0 || diB < 0 || diA >= p.pdtDays.length || diB >= p.pdtDays.length) return;
+            const dayA = p.pdtDays[diA];
+            const dayB = p.pdtDays[diB];
+            // Échange uniquement le contenu (scènes et notes), pas la date ni la couleur d'en-tête
+            const tmpScenes = dayA.scenes;
+            const tmpNotes = dayA.dayNotes;
+            dayA.scenes = dayB.scenes;
+            dayA.dayNotes = dayB.dayNotes;
+            dayB.scenes = tmpScenes;
+            dayB.dayNotes = tmpNotes;
+            save(); renderPdt();
+        }
+
+        function togglePdtDay(di) {
+            projects[currentIdx].pdtDays[di].collapsed = !projects[currentIdx].pdtDays[di].collapsed;
+            save(); renderPdt();
+        }
+
+        function toggleAllPdtDays() {
+            const p = projects[currentIdx];
+            const allCollapsed = p.pdtDays.every(d => d.collapsed);
+            p.pdtDays.forEach(d => { d.collapsed = !allCollapsed; });
+            save(); renderPdt();
+        }
+
+        function openBlocModal() {
+            document.getElementById('bloc-debut').value = '';
+            document.getElementById('bloc-fin').value = '';
+            document.getElementById('bloc-debut').style.borderColor = '#bbb';
+            document.getElementById('bloc-fin').style.borderColor = '#bbb';
+            document.getElementById('bloc-modal-error').textContent = '';
+            document.getElementById('bloc-modal-add').disabled = false;
+            const overlay = document.getElementById('bloc-modal-overlay');
+            overlay.style.display = 'flex';
+        }
+
+        function closeBlocModal() {
+            document.getElementById('bloc-modal-overlay').style.display = 'none';
+        }
+
+        function validateBlocModal() {
+            const debut = document.getElementById('bloc-debut').value;
+            const fin = document.getElementById('bloc-fin').value;
+            const errEl = document.getElementById('bloc-modal-error');
+            const addBtn = document.getElementById('bloc-modal-add');
+            const dInp = document.getElementById('bloc-debut');
+            const fInp = document.getElementById('bloc-fin');
+
+            dInp.style.borderColor = '#bbb';
+            fInp.style.borderColor = '#bbb';
+            errEl.textContent = '';
+            addBtn.disabled = false;
+
+            if (!debut || !fin) return;
+
+            if (fin < debut) {
+                dInp.style.borderColor = '#cf6679';
+                fInp.style.borderColor = '#cf6679';
+                errEl.textContent = '⚠ La date de fin est antérieure à la date de début.';
+                addBtn.disabled = true;
+                return;
+            }
+
+            const p = projects[currentIdx];
+            const conflict = p.pdtDays.find(day => day.date && day.date >= debut && day.date <= fin);
+            if (conflict) {
+                dInp.style.borderColor = '#cf6679';
+                fInp.style.borderColor = '#cf6679';
+                errEl.textContent = '⚠ Un ou plusieurs jours de tournage sont compris dans ces dates.';
+                addBtn.disabled = true;
+                return;
+            }
+        }
+
+        function addChangementBloc() {
+            const debut = document.getElementById('bloc-debut').value;
+            const fin = document.getElementById('bloc-fin').value;
+            if (!debut || !fin) {
+                document.getElementById('bloc-modal-error').textContent = '⚠ Veuillez remplir les deux dates.';
+                return;
+            }
+            validateBlocModal();
+            if (document.getElementById('bloc-modal-add').disabled) return;
+
+            const p = projects[currentIdx];
+            if (!p.pdtBlocs) p.pdtBlocs = [];
+            p.pdtBlocs.push({ debut, fin });
+            save();
+            closeBlocModal();
+            renderPdt();
+        }
+
+        function addPdtDay() { projects[currentIdx].pdtDays.push({date:'', scenes:[], dayNotes:{}, collapsed:false}); save(); renderPdt(); }
+        
+        function addManualOffDay() {
+            let d = prompt("Entrez la date du jour OFF (AAAA-MM-JJ) :");
+            if (d) {
+                if (d.length === 10) {
+                    const p = projects[currentIdx];
+                    if (!p.manualOffDays) p.manualOffDays = [];
+                    if (!p.manualOffDays.includes(d)) {
+                        p.manualOffDays.push(d);
+                        save(); renderPdt();
+                    }
+                } else {
+                    alert("Format invalide. Assurez-vous d'utiliser le format AAAA-MM-JJ.");
+                }
+            }
+        }
+
+        function removePdtDay(di) { projects[currentIdx].pdtDays.splice(di, 1); save(); renderPdt(); }
+        function addSceneToDay(di) { projects[currentIdx].pdtDays[di].scenes.push(-1); save(); renderPdt(); }
+        function linkScene(di, si, val) { projects[currentIdx].pdtDays[di].scenes[si] = parseInt(val); save(); renderPdt(); }
+
+        function switchTab(idx) {
+            document.querySelectorAll('.tab').forEach((t, i) => {
+                t.classList.toggle('active', i === idx);
+                let target = document.getElementById(`tab-${i}`);
+                if(target) target.classList.toggle('hidden', i !== idx);
+            });
+            if(idx === 0) renderChrono();
+            if(idx === 1) renderPdt();
+            if(idx === 2) dlstInitDailies();
+            if(idx === 3) renderCal();
+        }
+
+        function createNewProject() {
+            let n = prompt("Nom du projet ?");
+            if(n) { 
+                const now = nowStr();
+                projects.push({name:n, color:'Blanc', createdAt:now, updatedAt:now, columns:[...defaultColumns], chronoData:[], pdtDays:[], pdtNoteCols:["Indications globales"]}); 
+                save(); renderHome(); 
+            }
+        }
+        function deleteProject(i) { if(confirm("Supprimer ?")) { projects.splice(i,1); save(); renderHome(); } }
+        function duplicateProject(i) { 
+            const now = nowStr();
+            let c = JSON.parse(JSON.stringify(projects[i])); 
+            c.name += " (copie)"; 
+            c.createdAt = now; 
+            c.updatedAt = now; 
+            projects.push(c); save(); renderHome(); 
+        }
+        function goBack() { document.getElementById('home-page').classList.remove('hidden'); document.getElementById('project-page').classList.add('hidden'); renderHome(); }
+
+
+        // ===== DAILIES - LISTES (integre depuis VT Pub) =====
+        // Stockage separe pour les inventaires partagés (globaux)
+        let dlstInventories = JSON.parse(localStorage.getItem('gaffer_dlst_invs')) || [];
+        let dlstCurrentInvId = null;
+        let dlstReorderMode = false;
+        let dlstDraggedIdx = null;
+        let dlstListSearchState = {};
+
+        function dlstSave() {
+            localStorage.setItem('gaffer_dlst_invs', JSON.stringify(dlstInventories));
+            save(); // save des projets (qui incluent les listes)
+        }
+
+        function dlstInitDailies() {
+            const p = projects[currentIdx];
+            if (!p.dlstLists) p.dlstLists = [];
+            dlstShowListes();
+        }
+
+        function dlstShowListes() {
+            document.getElementById('dlst-view-listes').style.display = '';
+            document.getElementById('dlst-view-inventories').style.display = 'none';
+            document.getElementById('dlst-view-edit-inventory').style.display = 'none';
+            // Refresh inventaire selector
+            const sel = document.getElementById('dlst-new-list-inv-source');
+            if (sel) {
+                sel.innerHTML = dlstInventories.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+            }
+            dlstRenderProjectLists();
+        }
+
+        function dlstShowInventories() {
+            document.getElementById('dlst-view-listes').style.display = 'none';
+            document.getElementById('dlst-view-inventories').style.display = '';
+            document.getElementById('dlst-view-edit-inventory').style.display = 'none';
+            dlstRenderInventories();
+        }
+
+        function dlstShowEditInventory() {
+            document.getElementById('dlst-view-listes').style.display = 'none';
+            document.getElementById('dlst-view-inventories').style.display = 'none';
+            document.getElementById('dlst-view-edit-inventory').style.display = '';
+        }
+
+        // --- Inventaires ---
+        function dlstCreateNewInventory() {
+            const name = document.getElementById('dlst-new-inv-name').value.trim();
+            if (!name) return;
+            dlstInventories.push({ id: 'inv_'+Date.now(), name: name, items: [] });
+            document.getElementById('dlst-new-inv-name').value = '';
+            dlstSave(); dlstRenderInventories();
+        }
+
+        function dlstRenderInventories() {
+            const container = document.getElementById('dlst-inventories-list');
+            container.innerHTML = '';
+            dlstInventories.forEach(inv => {
+                const div = document.createElement('div');
+                div.className = 'dlst-inv-card';
+                div.innerHTML = `
+                    <div class="dlst-inv-card-info" onclick="dlstOpenInventoryEditor('${inv.id}')">
+                        <div class="dlst-inv-card-name">${inv.name}</div>
+                        <div class="dlst-inv-card-meta">${inv.items.length} items</div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="dlst-btn-subtle" onclick="dlstRenameInv('${inv.id}')">&#9998;</button>
+                        <button class="dlst-btn-subtle" onclick="dlstDuplicateInv('${inv.id}')">&#10064;</button>
+                        <button class="dlst-btn-danger" onclick="dlstDeleteInv('${inv.id}')">x</button>
+                    </div>`;
+                container.appendChild(div);
+            });
+        }
+
+        function dlstOpenInventoryEditor(id) {
+            dlstCurrentInvId = id;
+            dlstReorderMode = false;
+            document.getElementById('dlst-reorder-toggle').checked = false;
+            document.getElementById('dlst-inv-import-section').style.display = 'none';
+            const inv = dlstInventories.find(i => i.id === id);
+            document.getElementById('dlst-edit-inv-title').textContent = inv.name;
+            dlstShowEditInventory();
+            dlstRenderInventoryEditor();
+        }
+
+        function dlstToggleReorderMode() {
+            dlstReorderMode = document.getElementById('dlst-reorder-toggle').checked;
+            const table = document.getElementById('dlst-inv-table');
+            if (dlstReorderMode) table.classList.add('dlst-reorder-active');
+            else table.classList.remove('dlst-reorder-active');
+            dlstRenderInventoryEditor();
+        }
+
+        function dlstRenderInventoryEditor() {
+            const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+            const tbody = document.getElementById('dlst-inv-body');
+            tbody.innerHTML = '';
+            inv.items.forEach((item, idx) => {
+                const tr = document.createElement('tr');
+                if (item.isSep) tr.className = 'dlst-row-separator';
+                if (dlstReorderMode) {
+                    tr.draggable = true;
+                    tr.addEventListener('dragstart', () => { dlstDraggedIdx = idx; tr.classList.add('dragging'); });
+                    tr.addEventListener('dragover', e => e.preventDefault());
+                    tr.addEventListener('drop', () => {
+                        const moved = inv.items.splice(dlstDraggedIdx, 1)[0];
+                        inv.items.splice(idx, 0, moved);
+                        dlstSave(); dlstRenderInventoryEditor();
+                    });
+                    tr.addEventListener('dragend', () => tr.classList.remove('dragging'));
+                }
+                const safeName = item.name.replace(/"/g, '&quot;');
+                tr.innerHTML = `
+                    <td style="width:30px; padding:5px;"><div class="dlst-drag-handle">&#8801;</div></td>
+                    <td style="width:75px; padding:5px;"><input type="number" class="dlst-rank-input" value="${idx+1}" onchange="dlstMoveRank(${idx}, this.value-1)"></td>
+                    <td style="padding:5px;"><input type="text" class="dlst-name-input" style="${item.isSep ? 'font-weight:bold; color:#607d8b;' : ''}" value="${safeName}" onchange="dlstUpdateInvItem(${idx}, 'name', this.value)"></td>
+                    <td style="width:70px; padding:5px;">${item.isSep ? '-' : `<input type="number" step="0.01" class="dlst-val-input" value="${item.price||0}" onchange="dlstUpdateInvItem(${idx}, 'price', this.value)">`}</td>
+                    <td style="width:70px; padding:5px;">${item.isSep ? '-' : `<input type="number" class="dlst-val-input" value="${item.stock||1}" onchange="dlstUpdateInvItem(${idx}, 'stock', this.value)">`}</td>
+                    <td style="width:35px; padding:5px; text-align:center;"><button onclick="dlstDeleteInvItem(${idx})" style="color:red; font-weight:bold; font-size:18px; cursor:pointer; border:none; background:none;">x</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function dlstDeleteInvItem(idx) {
+            const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+            inv.items.splice(idx, 1);
+            dlstSave(); dlstRenderInventoryEditor();
+        }
+
+        function dlstUpdateInvItem(idx, field, val) {
+            const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+            inv.items[idx][field] = (field === 'name') ? val : parseFloat(val);
+            dlstSave();
+        }
+
+        function dlstMoveRank(oldIdx, newIdx) {
+            const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+            const item = inv.items.splice(oldIdx, 1)[0];
+            inv.items.splice(Math.max(0, newIdx), 0, item);
+            dlstSave(); dlstRenderInventoryEditor();
+        }
+
+        function dlstAddInvRow() {
+            const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+            inv.items.push({ id: Date.now(), name: "Nouvel Item", price: 0, stock: 1, isSep: false });
+            dlstSave(); dlstRenderInventoryEditor();
+        }
+
+        function dlstAddInvSep() {
+            const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+            inv.items.push({ id: Date.now(), name: "--- SECTION ---", isSep: true });
+            dlstSave(); dlstRenderInventoryEditor();
+        }
+
+        function dlstDuplicateInv(id) {
+            const original = dlstInventories.find(i => i.id === id);
+            const clone = JSON.parse(JSON.stringify(original));
+            clone.id = 'inv_' + Date.now();
+            clone.name += " (Copie)";
+            dlstInventories.push(clone);
+            dlstSave(); dlstRenderInventories();
+        }
+
+        function dlstRenameInv(id) {
+            const inv = dlstInventories.find(i => i.id === id);
+            const n = prompt("Nom de l'inventaire :", inv.name);
+            if (n) { inv.name = n; dlstSave(); dlstRenderInventories(); }
+        }
+
+        function dlstDeleteInv(id) {
+            if (confirm("Supprimer cet inventaire ?")) {
+                dlstInventories = dlstInventories.filter(i => i.id !== id);
+                dlstSave(); dlstRenderInventories();
+            }
+        }
+
+        function dlstClearCurrentInventory() {
+            if (confirm("Tout effacer ?")) {
+                dlstInventories.find(i => i.id === dlstCurrentInvId).items = [];
+                dlstSave(); dlstRenderInventoryEditor();
+            }
+        }
+
+        function dlstToggleInvImportExport() {
+            const s = document.getElementById('dlst-inv-import-section');
+            const a = document.getElementById('dlst-inv-import-text');
+            if (s.style.display === 'none' || s.style.display === '') {
+                const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+                let txt = "";
+                inv.items.forEach(i => {
+                    if (i.isSep) txt += "\t\t\n\t\t\n";
+                    else txt += i.name + "\t" + (i.price||0) + "\t" + (i.stock||1) + "\n";
+                });
+                a.value = txt;
+                s.style.display = 'block';
+            } else { s.style.display = 'none'; }
+        }
+
+        function dlstProcessInvImport() {
+            if (!confirm("Ceci va ecraser l'inventaire actuel. Poursuivre ?")) return;
+            const inv = dlstInventories.find(i => i.id === dlstCurrentInvId);
+            const rows = document.getElementById('dlst-inv-import-text').value.split('\n');
+            let newItems = [];
+            let emptyCount = 0;
+            rows.forEach((r, idx) => {
+                const c = r.split('\t');
+                let name = c[0] ? c[0].trim() : "";
+                if (!name) {
+                    emptyCount++;
+                    if (emptyCount === 2) { newItems.push({ id: Date.now()+idx, name: "--- SECTION ---", isSep: true }); emptyCount = 0; }
+                } else {
+                    emptyCount = 0;
+                    let cleanPrice = (c[1] || "0").replace(/[$\s\u00A0]/g, "").replace(",", ".");
+                    newItems.push({ id: Date.now()+idx, name: name, price: parseFloat(cleanPrice)||0, stock: parseInt(c[2])||1, isSep: false });
+                }
+            });
+            inv.items = newItems;
+            dlstSave(); dlstRenderInventoryEditor(); document.getElementById('dlst-inv-import-section').style.display = 'none';
+        }
+
+        // --- Listes ---
+        function dlstCreateNewList() {
+            const name = document.getElementById('dlst-new-list-name').value.trim();
+            const invId = document.getElementById('dlst-new-list-inv-source').value;
+            if (!name || !invId) return;
+            const p = projects[currentIdx];
+            if (!p.dlstLists) p.dlstLists = [];
+            p.dlstLists.push({ id: 'li_'+Date.now(), name: name, invSourceId: invId, selections: [], globalDiscount: 0, hideFinance: false, minimized: false });
+            document.getElementById('dlst-new-list-name').value = '';
+            dlstSave(); dlstRenderProjectLists();
+        }
+
+        function dlstRenderProjectLists() {
+            const p = projects[currentIdx];
+            if (!p.dlstLists) p.dlstLists = [];
+            const wrapper = document.getElementById('dlst-lists-wrapper');
+            const minWrapper = document.getElementById('dlst-minimized-wrapper');
+            if (!wrapper || !minWrapper) return;
+            wrapper.innerHTML = '';
+            minWrapper.innerHTML = '';
+
+            p.dlstLists.forEach((list, lIdx) => {
+                if (list.minimized) {
+                    const minDiv = document.createElement('div');
+                    minDiv.className = 'dlst-minimized-item';
+                    const subTxt = (dlstInventories.find(i => i.id === list.invSourceId) || {}).name || 'Inv. Inconnu';
+                    minDiv.innerHTML = `
+                        <div class="dlst-minimized-info" onclick="dlstToggleMinimizeList(${lIdx})">
+                            <span class="dlst-minimized-name">${list.name}</span>
+                            <span class="dlst-minimized-inv">${subTxt}</span>
+                        </div>
+                        <button class="dlst-btn-danger" style="width:24px; height:24px; padding:0; font-size:14px;" onclick="dlstDeleteList(${lIdx})">x</button>
+                    `;
+                    minWrapper.appendChild(minDiv);
+                    return;
+                }
+
+                const div = document.createElement('div');
+                div.className = `dlst-list-container ${list.hideFinance ? 'dlst-hide-finance' : ''}`;
+                div.dataset.listIdx = lIdx;
+
+                const inv = dlstInventories.find(i => i.id === list.invSourceId) || { items: [], name: 'Inv. Inconnu' };
+
+                div.innerHTML = `
+                    <div class="dlst-list-header-top">
+                        <div class="dlst-list-title-area">
+                            <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                                <strong style="cursor:pointer;" onclick="dlstToggleMinimizeList(${lIdx})">${list.name}</strong>
+                                <button class="dlst-btn-subtle" style="width:18px; height:18px; font-size:9px;" onclick="dlstRenameList(${lIdx})">&#9998;</button>
+                                <div style="display:flex; gap:2px; margin-left:5px;">
+                                    <button class="dlst-btn-subtle" style="width:16px; height:16px; font-size:8px;" onclick="dlstMoveList(${lIdx}, -1)">&#9664;</button>
+                                    <button class="dlst-btn-subtle" style="width:16px; height:16px; font-size:8px;" onclick="dlstMoveList(${lIdx}, 1)">&#9654;</button>
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:5px; margin-top:4px; flex-wrap:wrap;">
+                                <small style="color:var(--accent);">${inv.name}</small>
+                                <button class="dlst-btn-view ${!list.hideFinance ? 'active' : ''}" onclick="dlstToggleListFinance(${lIdx})" style="font-size:14px;">&#128065;&#65039;</button>
+                                <input type="checkbox" id="dlst-daily-chk-${lIdx}" title="Dailies (dates in/out)" style="width:auto; margin:0; cursor:pointer; accent-color:var(--accent);" ${list.isDailies ? 'checked' : ''} onchange="dlstToggleDailiesChk(${lIdx}, this.checked)">
+                                <div id="dlst-dates-${lIdx}" style="display:${list.isDailies ? 'flex' : 'none'}; flex-direction:column; gap:3px; margin-left:4px;">
+                                    <div style="display:flex; align-items:center; gap:3px;">
+                                        <input type="text" id="dlst-date-in-text-${lIdx}" placeholder="AAAA-MM-JJ" maxlength="10" value="${list.dateIn || ''}" style="width:88px; padding:2px 5px; font-size:0.78rem; border:1px solid #bbb; border-radius:4px; background:#fff; color:#1a1a1a; box-sizing:border-box;" oninput="dlstDateTextInput(${lIdx}, 'dateIn', this.value)">
+                                        <div style="position:relative; width:22px; height:22px; flex-shrink:0;">
+                                            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.78rem; pointer-events:none; background:#f0f0f5; border:1px solid #bbb; border-radius:4px;">📅</div>
+                                            <input type="date" min="2024-01-01" max="2065-01-01" value="${list.dateIn || ''}" style="position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; margin:0; padding:0;" onchange="dlstDateCalInput(${lIdx}, 'dateIn', this.value)">
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:3px;">
+                                        <input type="text" id="dlst-date-out-text-${lIdx}" placeholder="AAAA-MM-JJ" maxlength="10" value="${list.dateOut || ''}" style="width:88px; padding:2px 5px; font-size:0.78rem; border:1px solid #bbb; border-radius:4px; background:#fff; color:#1a1a1a; box-sizing:border-box;" oninput="dlstDateTextInput(${lIdx}, 'dateOut', this.value)">
+                                        <div style="position:relative; width:22px; height:22px; flex-shrink:0;">
+                                            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.78rem; pointer-events:none; background:#f0f0f5; border:1px solid #bbb; border-radius:4px;">📅</div>
+                                            <input type="date" min="2024-01-01" max="2065-01-01" value="${list.dateOut || ''}" style="position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; margin:0; padding:0;" onchange="dlstDateCalInput(${lIdx}, 'dateOut', this.value)">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dlst-list-finance-controls dlst-finance-ui">
+                            <div style="width:80px;">
+                                <button class="dlst-btn-subtle" style="border-radius:50%; width:24px; height:24px; margin:0 auto; display:block;" onclick="dlstResetListPrices(${lIdx})" title="Reinitialiser les prix">&#8635;</button>
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; width:65px;">
+                                <input type="number" step="1" class="dlst-discount-input dlst-finance-ui" style="width:65px !important;" value="${list.globalDiscount}" onchange="dlstUpdateGlobalDiscount(${lIdx}, this.value)">
+                                <button class="dlst-btn-apply-all" title="Appliquer a tout" onclick="dlstApplyDiscountToAll(${lIdx})">&#8635;</button>
+                            </div>
+                            <div class="dlst-total-list-display" id="dlst-total-display-${lIdx}">0,00</div>
+                        </div>
+                        <div style="display:flex; gap:4px; margin-left:auto; flex-wrap:wrap; justify-content:flex-end;">
+                            <button class="dlst-btn-subtle" style="width:28px; height:28px; font-size:12px;" onclick="dlstToggleListImportExport(${lIdx})" title="Import / Export">&#128229;</button>
+                            <button class="dlst-btn-subtle" style="width:28px; height:28px; font-size:12px;" onclick="dlstDuplicateList(${lIdx})" title="Dupliquer">&#10064;</button>
+                            <button class="dlst-btn-danger" style="width:28px; height:28px; font-size:12px; padding:0;" onclick="dlstDeleteList(${lIdx})" title="Supprimer">x</button>
+                        </div>
+                    </div>
+
+                    <div id="dlst-list-import-${lIdx}" class="dlst-list-import-section">
+                        <textarea id="dlst-list-import-text-${lIdx}" placeholder="Quantite [TAB] Nom d'item..." style="height:80px; font-size:11px; margin-bottom:5px; width:100%; background:white; border:1px solid #ccc; border-radius:4px; padding:6px; box-sizing:border-box;"></textarea>
+                        <button class="dlst-btn-add" style="width:100%; font-size:10px; padding:5px;" onclick="dlstProcessListImport(${lIdx})">IMPORTER / ECRASER LA LISTE</button>
+                    </div>
+
+                    <div style="position:relative; margin-bottom:10px;">
+                        <input type="text" class="dlst-search-input" placeholder="Chercher un item.." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; background:white; box-sizing:border-box;" oninput="dlstSearchInList(this, '${list.invSourceId}', ${lIdx})">
+                        <div class="dlst-suggestions" style="display:none;"></div>
+                        <div class="dlst-pre-add-container">
+                            <div class="dlst-qty-picker">
+                                <button onclick="dlstChangePreAddQty(${lIdx}, -1)">-</button>
+                                <input type="number" id="dlst-pre-qty-${lIdx}" class="dlst-qty-field" value="1">
+                                <button onclick="dlstChangePreAddQty(${lIdx}, 1)">+</button>
+                            </div>
+                            <button class="dlst-btn-add" style="flex:1; padding:5px;" onclick="dlstAddItemFromSearch(this)">AJOUTER</button>
+                        </div>
+                    </div>
+                    <div id="dlst-items-list-${lIdx}"></div>
+                `;
+                wrapper.appendChild(div);
+                dlstRenderListItems(lIdx);
+            });
+
+            document.getElementById('dlst-minimized-section').style.display = minWrapper.innerHTML === '' ? 'none' : 'block';
+        }
+
+        function dlstToggleFinaleView() {
+            const finale = document.getElementById('dlst-finale-view');
+            const listes = document.getElementById('dlst-lists-wrapper');
+            const minSec = document.getElementById('dlst-minimized-section');
+            const btn = document.getElementById('dlst-btn-recap');
+            if (finale.style.display === 'none' || finale.style.display === '') {
+                finale.style.display = 'block';
+                listes.style.display = 'none';
+                if (minSec) minSec.style.display = 'none';
+                btn.textContent = 'Retour aux Listes';
+                btn.style.background = '#6c757d';
+                dlstRenderFinale();
+            } else {
+                finale.style.display = 'none';
+                listes.style.display = 'flex';
+                btn.textContent = 'RECAPITULATIF';
+                btn.style.background = '#f39c12';
+                dlstRenderProjectLists();
+            }
+        }
+
+        function dlstMoveList(lIdx, direction) {
+            const p = projects[currentIdx];
+            const targetIdx = lIdx + direction;
+            if (targetIdx >= 0 && targetIdx < p.dlstLists.length) {
+                const list = p.dlstLists.splice(lIdx, 1)[0];
+                p.dlstLists.splice(targetIdx, 0, list);
+                dlstSave(); dlstRenderProjectLists();
+            }
+        }
+
+        function dlstToggleMinimizeList(lIdx) {
+            const p = projects[currentIdx];
+            p.dlstLists[lIdx].minimized = !p.dlstLists[lIdx].minimized;
+            dlstSave(); dlstRenderProjectLists();
+        }
+
+        function dlstToggleListImportExport(lIdx) {
+            const el = document.getElementById(`dlst-list-import-${lIdx}`);
+            const area = document.getElementById(`dlst-list-import-text-${lIdx}`);
+            if (el.style.display === 'block') {
+                el.style.display = 'none';
+            } else {
+                const p = projects[currentIdx];
+                const list = p.dlstLists[lIdx];
+                let txt = "";
+                const inv = dlstInventories.find(i => i.id === list.invSourceId) || { items: [] };
+                inv.items.forEach(invItem => {
+                    if (!invItem.isSep) {
+                        const sel = list.selections.find(s => s.itemId === invItem.id);
+                        if (sel) txt += `${sel.qty}	${invItem.name}
+`;
+                    }
+                });
+                list.selections.filter(s => s.itemId === null).forEach(sel => {
+                    txt += `${sel.qty}	${sel.manualName}
+`;
+                });
+                area.value = txt.trim();
+                el.style.display = 'block';
+            }
+        }
+
+        function dlstProcessListImport(lIdx) {
+            if (!confirm("Ceci va remplacer le contenu actuel de cette liste. Continuer ?")) return;
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            const inv = dlstInventories.find(i => i.id === list.invSourceId);
+            const text = document.getElementById(`dlst-list-import-text-${lIdx}`).value;
+            const lines = text.split('\n');
+            list.selections = [];
+            lines.forEach(line => {
+                const parts = line.split('\t');
+                if (parts.length < 1) return;
+                let qty = parseInt(parts[0]) || 1;
+                let name = (parts[1] || parts[0]).trim();
+                if (!name || name === "" || name === qty.toString()) return;
+                const match = inv ? inv.items.find(i => !i.isSep && i.name.toLowerCase() === name.toLowerCase()) : null;
+                if (match) {
+                    const existing = list.selections.find(s => s.itemId === match.id);
+                    if (existing) existing.qty += qty;
+                    else list.selections.push({ itemId: match.id, qty: qty, discount: list.globalDiscount, customPrice: match.price });
+                } else {
+                    list.selections.push({ itemId: null, manualName: name, qty: qty, discount: list.globalDiscount, customPrice: 0 });
+                }
+            });
+            document.getElementById(`dlst-list-import-text-${lIdx}`).value = '';
+            document.getElementById(`dlst-list-import-${lIdx}`).style.display = 'none';
+            dlstSave(); dlstRenderListItems(lIdx);
+        }
+
+        function dlstResetListPrices(lIdx) {
+            if (!confirm("Reinitialiser tous les prix de cette liste aux valeurs d'origine ?")) return;
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            const inv = dlstInventories.find(i => i.id === list.invSourceId);
+            list.selections.forEach(sel => {
+                if (sel.itemId && inv) {
+                    const invItem = inv.items.find(i => i.id === sel.itemId);
+                    if (invItem) sel.customPrice = invItem.price;
+                } else { sel.customPrice = 0; }
+            });
+            dlstSave(); dlstRenderListItems(lIdx);
+        }
+
+        function dlstRenameList(lIdx) {
+            const p = projects[currentIdx];
+            const n = prompt("Nouveau nom :", p.dlstLists[lIdx].name);
+            if (n) { p.dlstLists[lIdx].name = n; dlstSave(); dlstRenderProjectLists(); }
+        }
+
+        function dlstDuplicateList(lIdx) {
+            const p = projects[currentIdx];
+            const clone = JSON.parse(JSON.stringify(p.dlstLists[lIdx]));
+            clone.id = 'li_' + Date.now();
+            clone.name += " (Copie)";
+            p.dlstLists.push(clone);
+            dlstSave(); dlstRenderProjectLists();
+        }
+
+        function dlstDeleteList(idx) {
+            if (confirm("Supprimer la liste ?")) {
+                projects[currentIdx].dlstLists.splice(idx, 1);
+                dlstSave(); dlstRenderProjectLists();
+            }
+        }
+
+        function dlstToggleListFinance(lIdx) {
+            const p = projects[currentIdx];
+            p.dlstLists[lIdx].hideFinance = !p.dlstLists[lIdx].hideFinance;
+            dlstSave(); dlstRenderProjectLists();
+        }
+
+        function dlstToggleDailiesChk(lIdx, checked) {
+            const p = projects[currentIdx];
+            p.dlstLists[lIdx].isDailies = checked;
+            const datesDiv = document.getElementById('dlst-dates-' + lIdx);
+            if (datesDiv) datesDiv.style.display = checked ? 'flex' : 'none';
+            dlstSave();
+        }
+
+        function dlstDateTextInput(lIdx, field, val) {
+            if (val.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                let v = val;
+                if (v < '2024-01-01') v = '2024-01-01';
+                if (v > '2065-01-01') v = '2065-01-01';
+                projects[currentIdx].dlstLists[lIdx][field] = v;
+                dlstSave();
+            } else if (val === '') {
+                projects[currentIdx].dlstLists[lIdx][field] = '';
+                dlstSave();
+            }
+        }
+
+        function dlstDateCalInput(lIdx, field, val) {
+            let v = val;
+            if (v) {
+                if (v < '2024-01-01') v = '2024-01-01';
+                if (v > '2065-01-01') v = '2065-01-01';
+            }
+            projects[currentIdx].dlstLists[lIdx][field] = v;
+            // Sync the text input
+            const textEl = document.getElementById('dlst-date-' + (field === 'dateIn' ? 'in' : 'out') + '-text-' + lIdx);
+            if (textEl) textEl.value = v;
+            dlstSave();
+        }
+
+        function dlstUpdateGlobalDiscount(lIdx, val) {
+            const p = projects[currentIdx];
+            p.dlstLists[lIdx].globalDiscount = parseFloat(val) || 0;
+            dlstSave();
+        }
+
+        function dlstApplyDiscountToAll(lIdx) {
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            list.selections.forEach(sel => { sel.discount = list.globalDiscount; });
+            dlstSave(); dlstRenderListItems(lIdx);
+        }
+
+        function dlstChangePreAddQty(lIdx, val) {
+            const input = document.getElementById(`dlst-pre-qty-${lIdx}`);
+            let current = parseInt(input.value) || 1;
+            input.value = Math.max(1, current + val);
+        }
+
+        function dlstSearchInList(input, invId, listIdx) {
+            const val = input.value.toLowerCase();
+            const suggBox = input.nextElementSibling;
+            suggBox.innerHTML = '';
+            if (val.length < 1) { suggBox.style.display = 'none'; dlstListSearchState[listIdx] = null; return; }
+            const inv = dlstInventories.find(i => i.id === invId);
+            if (!inv) return;
+            const matches = inv.items.filter(i => !i.isSep && i.name.toLowerCase().includes(val));
+            if (matches.length > 0) {
+                suggBox.style.display = 'block';
+                matches.forEach(m => {
+                    const d = document.createElement('div');
+                    d.style.cssText = 'padding:10px; cursor:pointer; border-bottom:1px solid #eee; background:white;';
+                    d.textContent = m.name;
+                    d.onclick = () => { input.value = m.name; dlstListSearchState[listIdx] = m.id; suggBox.style.display = 'none'; };
+                    suggBox.appendChild(d);
+                });
+            } else { suggBox.style.display = 'none'; }
+        }
+
+        function dlstAddItemFromSearch(btn) {
+            const container = btn.closest('.dlst-list-container');
+            const lIdx = parseInt(container.dataset.listIdx);
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            const searchInput = container.querySelector('.dlst-search-input');
+            const qtyInput = document.getElementById(`dlst-pre-qty-${lIdx}`);
+            const itemId = dlstListSearchState[lIdx];
+            const itemName = searchInput.value.trim();
+            const qty = parseInt(qtyInput.value) || 1;
+            if (!itemName) return;
+            if (itemId) {
+                const existing = list.selections.find(s => s.itemId === itemId);
+                const inv = dlstInventories.find(i => i.id === list.invSourceId);
+                const invItem = inv ? inv.items.find(i => i.id === itemId) : null;
+                if (existing) existing.qty += qty;
+                else list.selections.push({ itemId: itemId, qty: qty, discount: list.globalDiscount, customPrice: invItem ? invItem.price : 0 });
+            } else {
+                list.selections.push({ itemId: null, manualName: itemName, qty: qty, discount: list.globalDiscount, customPrice: 0 });
+            }
+            searchInput.value = ''; qtyInput.value = 1; dlstListSearchState[lIdx] = null;
+            dlstSave(); dlstRenderListItems(lIdx);
+        }
+
+        function dlstRenderListItems(lIdx) {
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            if (!list || list.minimized) return;
+            const inv = dlstInventories.find(i => i.id === list.invSourceId);
+            const container = document.getElementById(`dlst-items-list-${lIdx}`);
+            if (!container) return;
+            container.innerHTML = '';
+            let listGrandTotal = 0;
+
+            if (inv) {
+                inv.items.forEach(invItem => {
+                    const sel = list.selections.find(s => s.itemId === invItem.id);
+                    if (invItem.isSep) {
+                        const sep = document.createElement('div');
+                        sep.className = 'dlst-list-separator-view';
+                        sep.textContent = invItem.name;
+                        container.appendChild(sep);
+                    } else if (sel) {
+                        listGrandTotal += dlstRenderSingleItemRow(container, lIdx, sel, invItem.name, invItem.price, list.globalDiscount, list.hideFinance);
+                    }
+                });
+            }
+
+            list.selections.filter(s => s.itemId === null).forEach(sel => {
+                listGrandTotal += dlstRenderSingleItemRow(container, lIdx, sel, sel.manualName, 0, list.globalDiscount, list.hideFinance);
+            });
+
+            const totalDisplay = document.getElementById(`dlst-total-display-${lIdx}`);
+            if (totalDisplay) totalDisplay.textContent = listGrandTotal.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function dlstRenderSingleItemRow(container, lIdx, sel, displayName, basePrice, globalDisc, isHidden) {
+            if (sel.discount === undefined) sel.discount = globalDisc;
+            if (sel.customPrice === undefined) sel.customPrice = basePrice;
+            const currentPrice = sel.customPrice;
+            const lineTotal = sel.qty * currentPrice * (1 - (sel.discount / 100));
+            const isDiscountOverridden = Math.abs(sel.discount - globalDisc) > 0.01;
+            const isPriceOverridden = Math.abs(currentPrice - basePrice) > 0.001;
+            const isManual = (sel.itemId === null);
+            const blueDot = isManual ? `<span class="dlst-manual-dot">•</span>` : "";
+            const manualNameEsc = (sel.manualName || '').replace(/'/g, "\'");
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'dlst-list-grid-row';
+            itemDiv.style.cssText = 'padding:8px 0; border-bottom:1px solid #f0f0f0;';
+
+            let html = `<div style="min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.9em;"><strong>${sel.qty}x</strong> ${displayName} ${blueDot}<button class="dlst-btn-delete-item" onclick="dlstRemoveItem(${lIdx}, ${sel.itemId}, '${manualNameEsc}')">x</button></div>`;
+
+            if (!isHidden) {
+                html += `<div class="dlst-finance-ui"><input type="text" class="dlst-price-input ${isPriceOverridden ? 'dlst-override' : ''}" value="${currentPrice.toLocaleString('fr-FR', {minimumFractionDigits:2})}" onchange="dlstUpdateItemPriceText(${lIdx}, ${sel.itemId}, '${manualNameEsc}', this.value)"></div>
+                <div class="dlst-finance-ui"><input type="number" step="1" class="dlst-discount-input ${isDiscountOverridden ? 'dlst-override' : ''}" value="${sel.discount}" onchange="dlstUpdateItemDiscount(${lIdx}, ${sel.itemId}, '${manualNameEsc}', this.value)"></div>
+                <div class="dlst-finance-ui dlst-price-col-cell" style="font-weight:bold;">${lineTotal.toLocaleString('fr-FR', {minimumFractionDigits:2})}</div>`;
+            }
+
+            html += `<div style="display:flex; gap:4px; justify-content:flex-end; flex-wrap:nowrap;"><button class="dlst-ipad-qty-btn" onclick="dlstUpdateQty(${lIdx}, ${sel.itemId}, '${manualNameEsc}', 1)">+</button><button class="dlst-ipad-qty-btn" onclick="dlstUpdateQty(${lIdx}, ${sel.itemId}, '${manualNameEsc}', -1)">-</button></div>`;
+
+            itemDiv.innerHTML = html;
+            container.appendChild(itemDiv);
+            return lineTotal;
+        }
+
+        function dlstUpdateItemPriceText(lIdx, itemId, manualName, val) {
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            const sel = list.selections.find(s => s.itemId === itemId && (itemId !== null || s.manualName === manualName));
+            if (sel) { let clean = val.replace(',', '.').replace(/[^\d.]/g, ''); sel.customPrice = parseFloat(clean) || 0; dlstSave(); dlstRenderListItems(lIdx); }
+        }
+
+        function dlstUpdateItemDiscount(lIdx, itemId, manualName, val) {
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            const sel = list.selections.find(s => s.itemId === itemId && (itemId !== null || s.manualName === manualName));
+            if (sel) { sel.discount = parseFloat(val) || 0; dlstSave(); dlstRenderListItems(lIdx); }
+        }
+
+        function dlstUpdateQty(lIdx, itemId, manualName, change) {
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            const sel = list.selections.find(s => s.itemId === itemId && (itemId !== null || s.manualName === manualName));
+            if (sel) { sel.qty += change; if (sel.qty <= 0) dlstRemoveItem(lIdx, itemId, manualName); }
+            dlstSave(); dlstRenderListItems(lIdx);
+        }
+
+        function dlstRemoveItem(lIdx, itemId, manualName) {
+            const p = projects[currentIdx];
+            const list = p.dlstLists[lIdx];
+            list.selections = list.selections.filter(s => !(s.itemId === itemId && (itemId !== null || s.manualName === manualName)));
+            dlstSave(); dlstRenderListItems(lIdx);
+        }
+
+        function dlstGetCleanedRenderRows(list) {
+            const inv = dlstInventories.find(i => i.id === list.invSourceId) || { items: [] };
+            let rawRows = [];
+            inv.items.forEach(invItem => {
+                if (invItem.isSep) { rawRows.push({ type: 'sep' }); }
+                else {
+                    const sel = list.selections.find(s => s.itemId === invItem.id);
+                    if (sel) rawRows.push({ type: 'item', qty: sel.qty, name: invItem.name });
+                }
+            });
+            list.selections.filter(s => s.itemId === null).forEach(sel => {
+                rawRows.push({ type: 'item', qty: sel.qty, name: sel.manualName });
+            });
+            let cleanedRows = [];
+            let hasSeenItems = false, pendingSep = false;
+            rawRows.forEach(row => {
+                if (row.type === 'item') {
+                    if (hasSeenItems && pendingSep) cleanedRows.push({ type: 'sep' });
+                    cleanedRows.push(row); hasSeenItems = true; pendingSep = false;
+                } else if (row.type === 'sep') { pendingSep = true; }
+            });
+            return cleanedRows;
+        }
+
+        function dlstRenderFinale() {
+            const p = projects[currentIdx];
+            const wrapper = document.getElementById('dlst-finale-wrapper');
+            wrapper.innerHTML = '';
+            (p.dlstLists || []).forEach((list, lIdx) => {
+                const rows = dlstGetCleanedRenderRows(list);
+                if (rows.length === 0) return;
+                const col = document.createElement('div');
+                col.className = 'dlst-recap-column';
+                let blocksText = [], fullListText = "", tempText = "";
+                rows.forEach(row => {
+                    if (row.type === 'sep') { blocksText.push(tempText.trim()); tempText = ""; fullListText += "\n\n"; }
+                    else { let line = `${row.qty}\t${row.name}\n`; tempText += line; fullListText += line; }
+                });
+                if (tempText !== "") blocksText.push(tempText.trim());
+                fullListText = fullListText.trim();
+                let html = `<div style="display:flex; align-items:center; gap:10px; margin-bottom:15px; border-bottom:2px solid #eee; padding-bottom:8px;">
+                    <button class="dlst-btn-subtle" style="width:24px; height:24px; font-size:10px;" onclick="dlstCopyText(this)" data-copy="${encodeURIComponent(fullListText)}" title="Copier toute la liste">&#128203;</button>
+                    <h3 style="margin:0; font-size:1.1em;">${list.name}</h3>
+                </div><div style="overflow-x:auto; background:white; border-radius:4px;"><table style="width:100%; border-collapse:collapse;">`;
+                let blockCounter = 0, currentBlockHasButton = false;
+                rows.forEach((row, index) => {
+                    if (row.type === 'sep') {
+                        let nextBlockText = blocksText[blockCounter];
+                        html += `<tr><td style="width:30px; vertical-align:middle; padding:10px 0;"><button class="dlst-btn-subtle" style="width:24px; height:24px; font-size:10px;" onclick="dlstCopyText(this)" data-copy="${encodeURIComponent(nextBlockText || '')}">&#128203;</button></td><td colspan="2" style="height:40px;"></td></tr>`;
+                        currentBlockHasButton = true;
+                    } else {
+                        if (!currentBlockHasButton) {
+                            let currentBlockText = blocksText[blockCounter];
+                            html += `<tr><td style="width:30px; vertical-align:top; padding-top:4px;"><button class="dlst-btn-subtle" style="width:24px; height:24px; font-size:10px;" onclick="dlstCopyText(this)" data-copy="${encodeURIComponent(currentBlockText || '')}">&#128203;</button></td><td style="width:40px; text-align:center; padding:4px;">${row.qty}</td><td style="padding:4px;">${row.name}</td></tr>`;
+                            currentBlockHasButton = true;
+                        } else {
+                            html += `<tr><td style="width:30px;"></td><td style="width:40px; text-align:center; padding:4px;">${row.qty}</td><td style="padding:4px;">${row.name}</td></tr>`;
+                        }
+                        let nextRow = rows[index + 1];
+                        if (!nextRow || nextRow.type === 'sep') { blockCounter++; currentBlockHasButton = false; }
+                    }
+                });
+                html += `</table></div>`;
+                col.innerHTML = html;
+                wrapper.appendChild(col);
+            });
+        }
+
+        function dlstCopyAllLists() {
+            let txt = "";
+            const p = projects[currentIdx];
+            (p.dlstLists || []).forEach(list => {
+                const rows = dlstGetCleanedRenderRows(list);
+                if (rows.length === 0) return;
+                txt += `--- ${list.name.toUpperCase()} ---\n`;
+                rows.forEach(row => {
+                    if (row.type === 'sep') txt += "\n\n";
+                    else txt += `${row.qty}\t${row.name}\n`;
+                });
+                txt += "\n\n";
+            });
+            navigator.clipboard.writeText(txt.trim());
+        }
+
+        function dlstCopyText(btn) {
+            const txt = decodeURIComponent(btn.getAttribute('data-copy'));
+            navigator.clipboard.writeText(txt);
+        }
+
+
+        // ===== ONGLET CALENDRIER =====
+        function renderCal() {
+            const container = document.getElementById('cal-container');
+            container.innerHTML = '';
+            const p = projects[currentIdx];
+            if (!p || !p.pdtDays || p.pdtDays.length === 0) {
+                container.innerHTML = '<p style="color:#888; padding:20px;">Aucun jour de tournage dans le Plan de travail.</p>';
+                return;
+            }
+
+            // --- Helpers ---
+            function parseISO(s) { if(!s) return null; const [y,m,d]=s.split('-').map(Number); const dt=new Date(y,m-1,d); return isNaN(dt)?null:dt; }
+            function addDays(d,n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+            function toISO(d) { const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+            const JOURS_FR = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+            const MOIS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+            const todayISO = toISO(new Date());
+
+            const LIST_COLORS = ['#e07b54','#5b8dd9','#6abf69','#c97dc2','#e0b44a','#56b8b8','#d9725b','#7b96d4'];
+
+            // --- Construire la map date → données jour ---
+            const dateMap = {};
+            let dayNumCounter = 0;
+            p.pdtDays.forEach(day => {
+                if (!day.date) return;
+                dayNumCounter++;
+                const scenes = day.scenes || [];
+                const lieux = [];
+                scenes.forEach(sIdx => {
+                    if (sIdx < 0 || !p.chronoData || !p.chronoData[sIdx]) return;
+                    const row = p.chronoData[sIdx];
+                    const l = row['Lieu de tournage'] || '';
+                    if (l && !lieux.includes(l)) lieux.push(l);
+                });
+                dateMap[day.date] = {
+                    dayNum: String(dayNumCounter).padStart(2,'0'),
+                    horaire: day.horaire || 'Jour',
+                    lieux
+                };
+            });
+
+            const offLabels = p.pdtOffLabels || {};
+            const allRealDates = p.pdtDays.filter(d=>d.date).map(d=>d.date).sort();
+            if (allRealDates.length === 0) {
+                container.innerHTML = '<p style="color:#888; padding:20px;">Aucune date dans le Plan de travail.</p>';
+                return;
+            }
+
+            const pdtBlocs = p.pdtBlocs || [];
+            const manualOffDays = p.manualOffDays || [];
+            const firstDate = parseISO(allRealDates[0]);
+            const lastDate = parseISO(allRealDates[allRealDates.length - 1]);
+
+            const segments = [];
+            let currentSegment = [];
+            let cur = new Date(firstDate);
+            while (toISO(cur) <= toISO(lastDate)) {
+                const iso = toISO(cur);
+                const isTournage = !!dateMap[iso];
+                const bloc = pdtBlocs.find(b => iso >= b.debut && iso <= b.fin);
+                if (bloc) {
+                    const blocStart = parseISO(bloc.debut);
+                    const blocEnd = parseISO(bloc.fin);
+                    const blocDays = Math.round((blocEnd - blocStart) / 86400000) + 1;
+                    if (blocDays >= 7) {
+                        if (currentSegment.length > 0) { segments.push({ days: currentSegment }); currentSegment = []; }
+                        segments.push({ break: true, label: 'Changement de bloc : ' + bloc.debut + ' au ' + bloc.fin });
+                        cur = addDays(blocEnd, 1);
+                        continue;
+                    } else {
+                        currentSegment.push({ iso, type: 'off' });
+                    }
+                } else if (isTournage) {
+                    currentSegment.push({ iso, type: 'tournage' });
+                } else {
+                    currentSegment.push({ iso, type: 'off' });
+                }
+                cur = addDays(cur, 1);
+            }
+            if (currentSegment.length > 0) segments.push({ days: currentSegment });
+
+            const dlstLists = (p.dlstLists || []).filter(l => l.isDailies && l.dateIn && l.dateOut);
+
+            segments.forEach((seg) => {
+                if (seg.break) {
+                    const br = document.createElement('div');
+                    br.className = 'cal-break-header';
+                    br.textContent = '— ' + seg.label + ' —';
+                    container.appendChild(br);
+                    return;
+                }
+
+                const allDays = seg.days;
+                if (allDays.length === 0) return;
+
+                // Grouper en semaines Dim→Sam
+                const weeks = [];
+                const firstDay = parseISO(allDays[0].iso);
+                let weekStart = new Date(firstDay);
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                let dayIdx = 0;
+                while (dayIdx < allDays.length) {
+                    const week = [];
+                    for (let wd = 0; wd < 7; wd++) {
+                        const wiso = toISO(addDays(weekStart, wd));
+                        const found = allDays.find(d => d.iso === wiso);
+                        if (found) { week.push(found); }
+                        else if (wiso >= allDays[0].iso && wiso <= allDays[allDays.length-1].iso) { week.push({ iso: wiso, type: 'off' }); }
+                        else { week.push({ iso: wiso, type: 'outside' }); }
+                    }
+                    if (week.some(d => d.type !== 'outside')) weeks.push(week);
+                    weekStart = addDays(weekStart, 7);
+                    const nextWeekISO = toISO(weekStart);
+                    while (dayIdx < allDays.length && allDays[dayIdx].iso < nextWeekISO) dayIdx++;
+                    if (dayIdx >= allDays.length) break;
+                }
+                if (weeks.length === 0) return;
+
+                // Étiquette mois
+                const allISOs = weeks.flat().filter(d => d.type !== 'outside').map(d => d.iso);
+                const months = [...new Set(allISOs.map(iso => iso.slice(0,7)))];
+                const monthLabel = months.map(m => { const [y,mo]=m.split('-'); return MOIS_FR[parseInt(mo)-1]+' '+y; }).join(' – ');
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'cal-month-label';
+                monthDiv.textContent = monthLabel;
+                container.appendChild(monthDiv);
+
+                const weekSection = document.createElement('div');
+                weekSection.className = 'cal-week-section';
+
+                // En-tête jours
+                const headerGrid = document.createElement('div');
+                headerGrid.className = 'cal-week-header';
+                headerGrid.style.cssText = 'display:grid; grid-template-columns:repeat(7,1fr);';
+                JOURS_FR.forEach((j, idx) => {
+                    const hCell = document.createElement('div');
+                    hCell.className = 'cal-header-cell' + (idx===0||idx===6 ? ' cal-weekend' : '');
+                    hCell.textContent = j;
+                    headerGrid.appendChild(hCell);
+                });
+                weekSection.appendChild(headerGrid);
+
+                weeks.forEach(week => {
+                    // Grille des cellules de jour
+                    const weekGrid = document.createElement('div');
+                    weekGrid.className = 'cal-week-grid';
+
+                    week.forEach((d, wdIdx) => {
+                        const cell = document.createElement('div');
+                        const isWeekend = (wdIdx === 0 || wdIdx === 6);
+
+                        if (d.type === 'outside') {
+                            cell.className = 'cal-day-cell cal-outside';
+                            const numDiv = document.createElement('div');
+                            numDiv.className = 'cal-day-num';
+                            numDiv.style.color = '#ccc';
+                            numDiv.textContent = d.iso.slice(8);
+                            cell.appendChild(numDiv);
+                        } else if (d.type === 'off') {
+                            cell.className = 'cal-day-cell cal-off-cell' + (isWeekend ? ' cal-weekend-cell' : '');
+                            const numDiv = document.createElement('div');
+                            numDiv.className = 'cal-day-num';
+                            numDiv.textContent = d.iso.slice(8);
+                            cell.appendChild(numDiv);
+                            const offLabel = document.createElement('div');
+                            offLabel.className = 'cal-day-off-label';
+                            offLabel.textContent = offLabels[d.iso] || 'OFF';
+                            cell.appendChild(offLabel);
+                        } else {
+                            cell.className = 'cal-day-cell' + (isWeekend ? ' cal-weekend-cell' : '');
+                            const data = dateMap[d.iso];
+                            const numDiv = document.createElement('div');
+                            numDiv.className = (d.iso === todayISO) ? 'cal-day-num cal-today' : 'cal-day-num';
+                            numDiv.textContent = d.iso.slice(8);
+                            cell.appendChild(numDiv);
+                            const content = document.createElement('div');
+                            content.className = 'cal-day-content';
+                            if (data) {
+                                const jourLabel = document.createElement('div');
+                                jourLabel.className = 'cal-day-jourlabel';
+                                jourLabel.textContent = 'Jour ' + data.dayNum;
+                                content.appendChild(jourLabel);
+                                if (data.lieux.length > 0) {
+                                    const lieuDiv = document.createElement('div');
+                                    lieuDiv.className = 'cal-day-lieu';
+                                    lieuDiv.textContent = data.lieux.join(' / ');
+                                    content.appendChild(lieuDiv);
+                                }
+                                const horaireDiv = document.createElement('div');
+                                horaireDiv.className = 'cal-day-horaire';
+                                horaireDiv.textContent = data.horaire;
+                                content.appendChild(horaireDiv);
+                            }
+                            cell.appendChild(content);
+                        }
+                        weekGrid.appendChild(cell);
+                    });
+                    weekSection.appendChild(weekGrid);
+
+                    // Rangées Dailies séparées (une par liste), sous la grille de jours
+                    dlstLists.forEach((list, liIdx) => {
+                        const color = LIST_COLORS[liIdx % LIST_COLORS.length];
+                        // Vérifier si cette liste couvre au moins un jour de cette semaine
+                        const hasAny = week.some(d => d.type !== 'outside' && d.iso >= list.dateIn && d.iso <= list.dateOut);
+                        if (!hasAny) return;
+
+                        const dailiesRow = document.createElement('div');
+                        dailiesRow.className = 'cal-dailies-row';
+
+                        week.forEach((d, wdIdx) => {
+                            const dCell = document.createElement('div');
+                            if (d.type === 'outside') {
+                                dCell.className = 'cal-daily-cell cal-outside-daily';
+                            } else if (d.iso >= list.dateIn && d.iso <= list.dateOut) {
+                                dCell.className = 'cal-daily-cell';
+                                const band = document.createElement('span');
+                                band.className = 'cal-daily-band';
+                                band.style.background = color;
+                                // Nom seulement sur le premier jour visible de la liste dans cette semaine
+                                const isFirst = !week.slice(0, wdIdx).some(prev => prev.type !== 'outside' && prev.iso >= list.dateIn && prev.iso <= list.dateOut);
+                                band.textContent = isFirst ? list.name : '\u00A0';
+                                dCell.appendChild(band);
+                            } else {
+                                dCell.className = 'cal-daily-cell';
+                            }
+                            dailiesRow.appendChild(dCell);
+                        });
+                        weekSection.appendChild(dailiesRow);
+                    });
+                });
+
+                container.appendChild(weekSection);
+            });
+        }
+
+        renderHome();
+    </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker enregistré !'))
+        .catch(err => console.log('Erreur SW:', err));
+    });
+  }
+</script>
+</body>
+</html>
