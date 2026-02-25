@@ -1,0 +1,22 @@
+{
+  "name": "Gaffer Hub - Visite Technique",
+  "short_name": "Gaffer Hub",
+  "description": "Application de gestion de visites techniques pour productions cinéma/télévision.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f3f5",
+  "theme_color": "#5c35b5",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
